@@ -92,7 +92,7 @@ jobs:
         env:
           PLUGIN_VERSION: ${{ steps.buildspec.outputs.PLUGIN_VERSION }}
         run: |
-          $DLL_ARTIFACT_NAME = "obs-backgroundremoval_$env:PLUGIN_VERSION-windows-x64-directml.zip"
+          $DLL_ARTIFACT_NAME = "obs-backgroundremoval_$env:PLUGIN_VERSION-windows-x64.zip"
           "DLL_ARTIFACT_NAME=$DLL_ARTIFACT_NAME"
           Add-Content -Value "DLL_ARTIFACT_NAME=$DLL_ARTIFACT_NAME" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
 
