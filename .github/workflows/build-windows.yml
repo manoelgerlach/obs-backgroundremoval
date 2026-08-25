@@ -307,7 +307,8 @@ jobs:
           New-Item -ItemType Directory -Path $ORT_BIN_DIR -Force | Out-Null
           Copy-Item -LiteralPath $DIRECTML_DLL -Destination (Join-Path $ORT_BIN_DIR 'DirectML.dll')
 
-          $DIRECTML_HEADER = Get-ChildItem -LiteralPath build_ort -Filter DirectML.h -Recurse |
+          $DIRECTML_HEADER = Get-ChildItem -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'packages') `
+            -Filter DirectML.h -Recurse |
             Select-Object -First 1
           if ($null -eq $DIRECTML_HEADER) {
             throw 'The ONNX Runtime DirectML build did not restore DirectML.h.'
