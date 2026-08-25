@@ -195,6 +195,7 @@ jobs:
             --triplet $env:VCPKG_ORT_TARGET_TRIPLET `
             --overlay-triplets (Join-Path $env:GITHUB_WORKSPACE 'vcpkg-triplets') `
             --x-install-root (Join-Path $env:GITHUB_WORKSPACE 'vcpkg_ort_installed') `
+            --x-feature=dml-ep `
             --x-manifest-root (Join-Path $env:GITHUB_WORKSPACE 'vendor' 'onnxruntime' 'cmake')
 
       - name: Restore ccache_ort (Windows)
@@ -213,18 +214,6 @@ jobs:
           CCACHE_COMMAND: ${{ steps.setup-buildspec-deps.outputs.CCACHE_COMMAND }}
         run: |
           & $env:CCACHE_COMMAND --zero-stats
-
-      - name: Generate reduced operators for ONNX Runtime
-        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
-        env:
-          PYTHON_COMMAND: ${{ steps.setup-python.outputs.python-path }}
-          REDUCED_OPS_CONFIG_PATH: ${{ steps.buildspec.outputs.onnxruntime_reduced_ops_config }}
-        run: |
-          & $env:PYTHON_COMMAND -m pip install -r requirements-build.txt
-          & $env:PYTHON_COMMAND vendor/onnxruntime/tools/ci_build/reduce_op_kernels.py `
-            $env:REDUCED_OPS_CONFIG_PATH `
-            --cmake_build_dir build_ort `
-            --is_extended_minimal_build_or_higher
 
       - name: Configure ONNX Runtime (Windows)
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
@@ -265,8 +254,9 @@ jobs:
             "-Donnxruntime_BUILD_SHARED_LIB=OFF" `
             "-Donnxruntime_BUILD_UNIT_TESTS=OFF" `
             "-Donnxruntime_DISABLE_RTTI=OFF" `
-            "-Donnxruntime_REDUCED_OPS_BUILD=ON" `
+            "-Donnxruntime_REDUCED_OPS_BUILD=OFF" `
             "-Donnxruntime_RUN_ONNX_TESTS=OFF" `
+            "-Donnxruntime_USE_DML=ON" `
             "-Donnxruntime_USE_VCPKG=ON"
 
       - name: Build ONNX Runtime (Windows)
@@ -300,6 +290,31 @@ jobs:
           $env:Path = "$CMAKE_BINDIR;$env:Path"
 
           cmake --install build_ort --config Release --prefix ort_installed
+
+          $DML_PROVIDER_LIBRARY = Get-ChildItem -LiteralPath build_ort -Filter onnxruntime_providers_dml.lib -Recurse |
+            Select-Object -First 1
+          if ($null -eq $DML_PROVIDER_LIBRARY) {
+            throw 'The ONNX Runtime DirectML build did not produce onnxruntime_providers_dml.lib.'
+          }
+
+          $DIRECTML_DLL = Join-Path $DML_PROVIDER_LIBRARY.DirectoryName 'DirectML.dll'
+          if (-not (Test-Path -LiteralPath $DIRECTML_DLL -PathType Leaf)) {
+            throw "The ONNX Runtime DirectML build did not copy DirectML.dll beside $($DML_PROVIDER_LIBRARY.FullName)."
+          }
+
+          $ORT_BIN_DIR = Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'bin'
+          New-Item -ItemType Directory -Path $ORT_BIN_DIR -Force | Out-Null
+          Copy-Item -LiteralPath $DIRECTML_DLL -Destination (Join-Path $ORT_BIN_DIR 'DirectML.dll')
+
+          $DIRECTML_HEADER = Get-ChildItem -LiteralPath build_ort -Filter DirectML.h -Recurse |
+            Select-Object -First 1
+          if ($null -eq $DIRECTML_HEADER) {
+            throw 'The ONNX Runtime DirectML build did not restore DirectML.h.'
+          }
+
+          $DIRECTML_INCLUDE_DIR = Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'include' 'directml'
+          New-Item -ItemType Directory -Path $DIRECTML_INCLUDE_DIR -Force | Out-Null
+          Copy-Item -Path (Join-Path $DIRECTML_HEADER.DirectoryName '*') -Destination $DIRECTML_INCLUDE_DIR -Recurse
 
       - name: Save ccache_ort
         if: success() && steps.ccache-ort.outputs.cache-hit != 'true'
@@ -336,7 +351,9 @@ jobs:
           cmake -S . -B build -G Ninja `
             "-DCMAKE_BUILD_TYPE=RelWithDebInfo" `
             "-DCMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH" `
-            "-DCMAKE_SYSTEM_VERSION=$env:CMAKE_SYSTEM_VERSION"
+            "-DCMAKE_SYSTEM_VERSION=$env:CMAKE_SYSTEM_VERSION" `
+            "-DDIRECTML_DLL=$(Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'bin' 'DirectML.dll')" `
+            "-DDIRECTML_INCLUDE_DIR=$(Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'include' 'directml')"
 
       - name: Build (Windows)
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
@@ -368,6 +385,11 @@ jobs:
           $env:Path = "$CMAKE_BINDIR;$env:Path"
 
           cmake --install build --config RelWithDebInfo --prefix build_prefix
+
+          $PACKAGED_DIRECTML_DLL = Join-Path build_prefix 'obs-backgroundremoval' 'bin' '64bit' 'DirectML.dll'
+          if (-not (Test-Path -LiteralPath $PACKAGED_DIRECTML_DLL -PathType Leaf)) {
+            throw "DirectML.dll was not included in the Windows package at $PACKAGED_DIRECTML_DLL"
+          }
 
           Set-Location build_prefix
           Compress-Archive -Path '*' -DestinationPath (Join-Path $env:GITHUB_WORKSPACE $env:DLL_ARTIFACT_NAME)

@@ -21,6 +21,7 @@ const char *const MODEL_DEPTH_TCMONODEPTH = "models/tcmonodepth_tcsmallnet_192x3
 
 const char *const USEGPU_CPU = "cpu";
 const char *const USEGPU_CUDA = "cuda";
+const char *const USEGPU_DML = "dml";
 const char *const USEGPU_ROCM = "rocm";
 const char *const USEGPU_MIGRAPHX = "migraphx";
 const char *const USEGPU_TENSORRT = "tensorrt";

@@ -37,6 +37,18 @@
 #endif
 #endif // HAVE_ONNXRUNTIME_ROCM_EP
 
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+#if __has_include(<onnxruntime/dml_provider_factory.h>)
+#include <onnxruntime/dml_provider_factory.h>
+#elif __has_include(<dml_provider_factory.h>)
+#include <dml_provider_factory.h>
+#elif __has_include(<onnxruntime/core/providers/dml/dml_provider_factory.h>)
+#include <onnxruntime/core/providers/dml/dml_provider_factory.h>
+#else
+#error "dml_provider_factory.h was not found"
+#endif
+#endif // HAVE_ONNXRUNTIME_DML_EP
+
 #if defined(__APPLE__)
 #if __has_include(<onnxruntime/coreml_provider_factory.h>)
 #include <onnxruntime/coreml_provider_factory.h>
@@ -64,6 +76,14 @@ int createOrtSession(filter_data *tf)
 		obs_log(LOG_ERROR, "Model object is not initialized");
 		return OBS_BGREMOVAL_ORT_SESSION_ERROR_INVALID_MODEL;
 	}
+
+#ifndef HAVE_ONNXRUNTIME_DML_EP
+	if (tf->useGPU == USEGPU_DML) {
+		obs_log(LOG_ERROR,
+			"DirectML was selected, but this build does not include the ONNX Runtime DirectML EP");
+		return OBS_BGREMOVAL_ORT_SESSION_ERROR_STARTUP;
+	}
+#endif
 
 	Ort::SessionOptions sessionOptions;
 
@@ -96,6 +116,22 @@ int createOrtSession(filter_data *tf)
 	bfree(modelFilepath_rawPtr);
 
 	try {
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+		const bool directMLSelected = tf->useGPU == USEGPU_DML;
+		if (directMLSelected) {
+			obs_log(LOG_INFO, "Initializing ONNX Runtime DirectML EP on the high-performance GPU");
+
+			const void *providerApi = nullptr;
+			Ort::ThrowOnError(Ort::GetApi().GetExecutionProviderApi("DML", ORT_API_VERSION, &providerApi));
+			const auto *dmlApi = static_cast<const OrtDmlApi *>(providerApi);
+
+			OrtDmlDeviceOptions deviceOptions{};
+			deviceOptions.Preference = OrtDmlPerformancePreference::HighPerformance;
+			deviceOptions.Filter = OrtDmlDeviceFilter::Gpu;
+			Ort::ThrowOnError(
+				dmlApi->SessionOptionsAppendExecutionProvider_DML2(sessionOptions, &deviceOptions));
+		}
+#endif
 #ifdef HAVE_ONNXRUNTIME_CUDA_EP
 		if (tf->useGPU == USEGPU_CUDA) {
 			Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(sessionOptions, 0));
@@ -125,8 +161,17 @@ int createOrtSession(filter_data *tf)
 		}
 #endif
 		tf->session.reset(new Ort::Session(*tf->env, tf->modelFilepath.c_str(), sessionOptions));
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+		if (directMLSelected) {
+			obs_log(LOG_INFO, "ONNX Runtime DirectML EP session initialized successfully");
+		}
+#endif
 	} catch (const std::exception &e) {
-		obs_log(LOG_ERROR, "%s", e.what());
+		if (tf->useGPU == USEGPU_DML) {
+			obs_log(LOG_ERROR, "Failed to initialize ONNX Runtime DirectML EP session: %s", e.what());
+		} else {
+			obs_log(LOG_ERROR, "%s", e.what());
+		}
 		return OBS_BGREMOVAL_ORT_SESSION_ERROR_STARTUP;
 	}
 

@@ -67,6 +67,9 @@ obs_properties_t *enhance_filter_properties(void *data)
 	obs_property_t *p_use_gpu = obs_properties_add_list(props, "useGPU", obs_module_text("InferenceDevice"),
 							    OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
 	obs_property_list_add_string(p_use_gpu, obs_module_text("CPU"), USEGPU_CPU);
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+	obs_property_list_add_string(p_use_gpu, obs_module_text("GPUDirectML"), USEGPU_DML);
+#endif
 #ifdef HAVE_ONNXRUNTIME_CUDA_EP
 	obs_property_list_add_string(p_use_gpu, obs_module_text("GPUCUDA"), USEGPU_CUDA);
 #endif

@@ -9,6 +9,8 @@ if(POLICY CMP0167)
 endif()
 
 set(PACKAGE_VERSION_SUFFIX "" CACHE STRING "Version suffix for plugin package")
+set(DIRECTML_DLL "" CACHE FILEPATH "Path to the DirectML redistributable DLL")
+set(DIRECTML_INCLUDE_DIR "" CACHE PATH "Path containing DirectML.h")
 
 block(PROPAGATE PLUGIN_VERSION)
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION_CONTENT)
@@ -202,7 +204,7 @@ block(PROPAGATE OpenCV_FOUND)
   endif()
 endblock()
 
-block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_ROCM_EP)
+block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_DML_EP HAVE_ONNXRUNTIME_ROCM_EP)
   set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON)
 
   find_program(Protobuf_PROTOC_EXECUTABLE NAMES protoc HINTS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES tools/protobuf)
@@ -236,6 +238,26 @@ block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_ROCM
   cmake_push_check_state(RESET)
   set(CMAKE_REQUIRED_LIBRARIES onnxruntime::onnxruntime)
   set(CMAKE_REQUIRED_QUIET TRUE)
+
+  if(MSVC)
+    set(CMAKE_REQUIRED_INCLUDES "${DIRECTML_INCLUDE_DIR}")
+    check_onnxruntime_execution_provider(
+      HAVE_ONNXRUNTIME_DML_EP
+      OrtSessionOptionsAppendExecutionProvider_DML
+      dml_provider_factory.h
+      onnxruntime/dml_provider_factory.h
+      onnxruntime/core/providers/dml/dml_provider_factory.h
+    )
+
+    if(HAVE_ONNXRUNTIME_DML_EP)
+      message(STATUS "Building with ONNX Runtime DirectML EP.")
+      target_compile_definitions(BuildOptions INTERFACE HAVE_ONNXRUNTIME_DML_EP)
+      target_include_directories(BuildOptions INTERFACE "${DIRECTML_INCLUDE_DIR}")
+    else()
+      message(STATUS "Building without ONNX Runtime DirectML EP.")
+    endif()
+    unset(CMAKE_REQUIRED_INCLUDES)
+  endif()
 
   check_onnxruntime_execution_provider(
     HAVE_ONNXRUNTIME_CUDA_EP
@@ -406,6 +428,10 @@ elseif(MSVC)
   set(OBS_PLUGIN_BIN_DIR "${CMAKE_PROJECT_NAME}/bin/64bit")
   set(OBS_PLUGIN_DATA_DIR "${CMAKE_PROJECT_NAME}/data")
 
+  if(HAVE_ONNXRUNTIME_DML_EP AND NOT EXISTS "${DIRECTML_DLL}")
+    message(FATAL_ERROR "DIRECTML_DLL must point to the DirectML.dll used to build ONNX Runtime.")
+  endif()
+
   install(
     TARGETS "${CMAKE_PROJECT_NAME}"
     RUNTIME DESTINATION "${OBS_PLUGIN_BIN_DIR}"
@@ -414,6 +440,9 @@ elseif(MSVC)
   install(FILES ${EFFECTS_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/effects")
   install(FILES ${LOCALE_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/locale")
   install(FILES ${MODELS_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/models" OPTIONAL)
+  if(HAVE_ONNXRUNTIME_DML_EP)
+    install(FILES "${DIRECTML_DLL}" DESTINATION "${OBS_PLUGIN_BIN_DIR}")
+  endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(OBS_PLUGIN_DATA_DIR "${CMAKE_INSTALL_DATAROOTDIR}/obs/obs-plugins/${CMAKE_PROJECT_NAME}")
   set(OBS_PLUGIN_DOC_DIR "${CMAKE_INSTALL_DATAROOTDIR}/doc/${CMAKE_PROJECT_NAME}")
