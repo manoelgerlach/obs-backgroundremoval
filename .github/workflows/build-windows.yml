@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -40,6 +41,7 @@ jobs:
 
     env:
       CCACHE_ORT_DIR: .ccache_ort
+      DEPENDENCY_CACHE_VERSION: v1
       VCPKG_FORCE_DOWNLOADED_BINARIES: '1'
       VCPKG_ORT_TARGET_TRIPLET: x64-windows-static-md-obs-ort
       VCPKG_ROOT: ${{ github.workspace }}/vendor/vcpkg
@@ -69,11 +71,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: true
-
-      - name: Checkout submodules
-        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
-        run: git submodule update --init --filter=blob:none vendor/obs-studio vendor/vcpkg vendor/onnxruntime
+          persist-credentials: false
 
       - name: Load buildspec.props and VERSION
         id: buildspec
@@ -94,9 +92,70 @@ jobs:
         env:
           PLUGIN_VERSION: ${{ steps.buildspec.outputs.PLUGIN_VERSION }}
         run: |
-          $DLL_ARTIFACT_NAME = "obs-backgroundremoval_$env:PLUGIN_VERSION.dll.zip"
+          $DLL_ARTIFACT_NAME = "obs-backgroundremoval_$env:PLUGIN_VERSION-windows-x64.zip"
           "DLL_ARTIFACT_NAME=$DLL_ARTIFACT_NAME"
           Add-Content -Value "DLL_ARTIFACT_NAME=$DLL_ARTIFACT_NAME" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Read pinned dependency revisions
+        id: dependency-revisions
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        run: |
+          $OBS_COMMIT = (git rev-parse 'HEAD:vendor/obs-studio').Trim()
+          $ORT_COMMIT = (git rev-parse 'HEAD:vendor/onnxruntime').Trim()
+          $VCPKG_COMMIT = (git rev-parse 'HEAD:vendor/vcpkg').Trim()
+
+          "OBS_COMMIT=$OBS_COMMIT"
+          "ORT_COMMIT=$ORT_COMMIT"
+          "VCPKG_COMMIT=$VCPKG_COMMIT"
+          Add-Content -Value "OBS_COMMIT=$OBS_COMMIT" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+          Add-Content -Value "ORT_COMMIT=$ORT_COMMIT" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+          Add-Content -Value "VCPKG_COMMIT=$VCPKG_COMMIT" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Read Windows toolchain identity
+        id: toolchain
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        run: |
+          $LAUNCH_DEVSHELL = Join-Path (vswhere -version '[18,19)' -property installationPath) 'Common7' 'Tools' 'Launch-VsDevShell.ps1'
+          $env:Path = 'C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32;C:\Windows'
+          & $LAUNCH_DEVSHELL -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+
+          $MSVC_VERSION = $env:VCToolsVersion.TrimEnd('\')
+          $VISUAL_STUDIO_VERSION = $env:VisualStudioVersion
+          "MSVC_VERSION=$MSVC_VERSION"
+          "VISUAL_STUDIO_VERSION=$VISUAL_STUDIO_VERSION"
+          Add-Content -Value "MSVC_VERSION=$MSVC_VERSION" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+          Add-Content -Value "VISUAL_STUDIO_VERSION=$VISUAL_STUDIO_VERSION" -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Restore installed OBS development prefix
+        id: obs-prefix-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: obs_installed
+          key: obs-prefix-${{ env.DEPENDENCY_CACHE_VERSION }}-${{ runner.os }}-x64-msvc-${{ steps.toolchain.outputs.MSVC_VERSION }}-sdk-${{ steps.buildspec.outputs.windows_sdk_version }}-release-${{ steps.dependency-revisions.outputs.OBS_COMMIT }}-${{ hashFiles('buildspec.props') }}
+
+      - name: Restore installed ONNX Runtime DirectML prefix
+        id: ort-prefix-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ort_installed
+            packages
+            vcpkg_ort_installed
+          key: ort-dml-prefix-${{ env.DEPENDENCY_CACHE_VERSION }}-${{ runner.os }}-x64-msvc-${{ steps.toolchain.outputs.MSVC_VERSION }}-sdk-${{ steps.buildspec.outputs.windows_sdk_version }}-release-${{ steps.dependency-revisions.outputs.ORT_COMMIT }}-vcpkg-${{ steps.dependency-revisions.outputs.VCPKG_COMMIT }}-${{ hashFiles('cmake/windows-onnxruntime-options.cmake', 'vcpkg-triplets/x64-windows-static-md-obs-ort.cmake') }}
+
+      - name: Checkout vcpkg submodule
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        run: git submodule update --init --filter=blob:none vendor/vcpkg
+
+      - name: Checkout OBS Studio submodule
+        if: steps.obs-prefix-cache.outputs.cache-hit != 'true'
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        run: git submodule update --init --filter=blob:none vendor/obs-studio
+
+      - name: Checkout ONNX Runtime submodule
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        run: git submodule update --init --filter=blob:none vendor/onnxruntime
 
       # BEGIN: Set up toolchains
 
@@ -122,6 +181,7 @@ jobs:
 
       - name: Set up Python
         id: setup-python
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.9'
@@ -129,6 +189,7 @@ jobs:
       # END: Set up toolchains
 
       - name: Configure OBS Studio (Windows)
+        if: steps.obs-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         env:
           CMAKE_PREFIX_PATH: ${{ steps.setup-buildspec-deps.outputs.OBS_DEPS_PREFIX }};${{ steps.setup-buildspec-deps.outputs.OBS_DEPS_QT6_PREFIX }}
@@ -150,6 +211,7 @@ jobs:
             "-DOBS_VERSION_OVERRIDE=$env:OBS_VERSION_OVERRIDE"
 
       - name: Build OBS Studio (Windows)
+        if: steps.obs-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         run: |
           $LAUNCH_DEVSHELL = Join-Path (vswhere -version '[18,19)' -property installationPath) 'Common7' 'Tools' 'Launch-VsDevShell.ps1'
@@ -159,6 +221,7 @@ jobs:
           cmake --build build_obs --target obs-frontend-api --config Release --parallel
 
       - name: Install OBS Studio (Windows)
+        if: steps.obs-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         run: |
           $LAUNCH_DEVSHELL = Join-Path (vswhere -version '[18,19)' -property installationPath) 'Common7' 'Tools' 'Launch-VsDevShell.ps1'
@@ -166,6 +229,13 @@ jobs:
           & $LAUNCH_DEVSHELL -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 
           cmake --install build_obs --component Development --config Release --prefix obs_installed
+
+      - name: Save installed OBS development prefix
+        if: steps.obs-prefix-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: obs_installed
+          key: ${{ steps.obs-prefix-cache.outputs.cache-primary-key }}
 
       - name: Install vcpkg dependencies (Windows)
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
@@ -181,6 +251,7 @@ jobs:
           & $VCPKG_COMMAND install --triplet $env:VCPKG_TARGET_TRIPLET
 
       - name: Install vcpkg_ort dependencies (Windows)
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         run: |
           $LAUNCH_DEVSHELL = Join-Path (vswhere -version '[18,19)' -property installationPath) 'Common7' 'Tools' 'Launch-VsDevShell.ps1'
@@ -195,10 +266,12 @@ jobs:
             --triplet $env:VCPKG_ORT_TARGET_TRIPLET `
             --overlay-triplets (Join-Path $env:GITHUB_WORKSPACE 'vcpkg-triplets') `
             --x-install-root (Join-Path $env:GITHUB_WORKSPACE 'vcpkg_ort_installed') `
+            --x-feature=dml-ep `
             --x-manifest-root (Join-Path $env:GITHUB_WORKSPACE 'vendor' 'onnxruntime' 'cmake')
 
       - name: Restore ccache_ort (Windows)
         id: ccache-ort
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_ORT_DIR }}
@@ -208,25 +281,15 @@ jobs:
             ccache_ort-v2-${{ runner.os }}-x64-${{ steps.windows-build.outputs.WINDOWS_BUILD_VERSION }}-${{ steps.setup-buildspec-deps.outputs.CCACHE_VERSION }}-${{ steps.buildspec.outputs.windows_sdk_version }}-
 
       - name: Reset ccache_ort stats
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         env:
           CCACHE_COMMAND: ${{ steps.setup-buildspec-deps.outputs.CCACHE_COMMAND }}
         run: |
           & $env:CCACHE_COMMAND --zero-stats
 
-      - name: Generate reduced operators for ONNX Runtime
-        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
-        env:
-          PYTHON_COMMAND: ${{ steps.setup-python.outputs.python-path }}
-          REDUCED_OPS_CONFIG_PATH: ${{ steps.buildspec.outputs.onnxruntime_reduced_ops_config }}
-        run: |
-          & $env:PYTHON_COMMAND -m pip install -r requirements-build.txt
-          & $env:PYTHON_COMMAND vendor/onnxruntime/tools/ci_build/reduce_op_kernels.py `
-            $env:REDUCED_OPS_CONFIG_PATH `
-            --cmake_build_dir build_ort `
-            --is_extended_minimal_build_or_higher
-
       - name: Configure ONNX Runtime (Windows)
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         env:
           CCACHE_COMMAND: ${{ steps.setup-buildspec-deps.outputs.CCACHE_COMMAND }}
@@ -250,26 +313,19 @@ jobs:
           $env:CCACHE_DIR = Join-Path $env:GITHUB_WORKSPACE $env:CCACHE_ORT_DIR
           $env:CCACHE_SLOPPINESS = 'include_file_mtime,time_macros'
           cmake -S vendor/onnxruntime/cmake -B build_ort -G Ninja --compile-no-warning-as-error `
-            "-DCMAKE_BUILD_TYPE=Release" `
+            -C cmake/windows-onnxruntime-options.cmake `
             "-DCMAKE_C_COMPILER_LAUNCHER=$env:CCACHE_COMMAND" `
             "-DCMAKE_CXX_COMPILER_LAUNCHER=$env:CCACHE_COMMAND" `
-            "-DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON" `
-            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" `
             "-DCMAKE_SYSTEM_VERSION=$env:CMAKE_SYSTEM_VERSION" `
             "-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE" `
             "-DPython_EXECUTABLE=$env:PYTHON_COMMAND" `
             "-DVCPKG_INSTALLED_DIR=$(Join-Path $env:GITHUB_WORKSPACE 'vcpkg_ort_installed')" `
             "-DVCPKG_MANIFEST_INSTALL=OFF" `
             "-DVCPKG_OVERLAY_TRIPLETS=$(Join-Path $env:GITHUB_WORKSPACE 'vcpkg-triplets')" `
-            "-DVCPKG_TARGET_TRIPLET=$env:VCPKG_ORT_TARGET_TRIPLET" `
-            "-Donnxruntime_BUILD_SHARED_LIB=OFF" `
-            "-Donnxruntime_BUILD_UNIT_TESTS=OFF" `
-            "-Donnxruntime_DISABLE_RTTI=OFF" `
-            "-Donnxruntime_REDUCED_OPS_BUILD=ON" `
-            "-Donnxruntime_RUN_ONNX_TESTS=OFF" `
-            "-Donnxruntime_USE_VCPKG=ON"
+            "-DVCPKG_TARGET_TRIPLET=$env:VCPKG_ORT_TARGET_TRIPLET"
 
       - name: Build ONNX Runtime (Windows)
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         run: |
           $LAUNCH_DEVSHELL = Join-Path (vswhere -version '[18,19)' -property installationPath) 'Common7' 'Tools' 'Launch-VsDevShell.ps1'
@@ -290,6 +346,7 @@ jobs:
           cmake --build build_ort --config Release --parallel
 
       - name: Install ONNX Runtime (Windows)
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         run: |
           $VCPKG_COMMAND = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
@@ -301,19 +358,106 @@ jobs:
 
           cmake --install build_ort --config Release --prefix ort_installed
 
+          $DML_PROVIDER_LIBRARY = Get-ChildItem -LiteralPath build_ort -Filter onnxruntime_providers_dml.lib -Recurse |
+            Select-Object -First 1
+          if ($null -eq $DML_PROVIDER_LIBRARY) {
+            throw 'The ONNX Runtime DirectML build did not produce onnxruntime_providers_dml.lib.'
+          }
+
+          $DIRECTML_DLL = Join-Path $DML_PROVIDER_LIBRARY.DirectoryName 'DirectML.dll'
+          if (-not (Test-Path -LiteralPath $DIRECTML_DLL -PathType Leaf)) {
+            throw "The ONNX Runtime DirectML build did not copy DirectML.dll beside $($DML_PROVIDER_LIBRARY.FullName)."
+          }
+
+          $ORT_BIN_DIR = Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'bin'
+          New-Item -ItemType Directory -Path $ORT_BIN_DIR -Force | Out-Null
+          Copy-Item -LiteralPath $DIRECTML_DLL -Destination (Join-Path $ORT_BIN_DIR 'DirectML.dll')
+
+          $DIRECTML_HEADER = Get-ChildItem -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'packages') `
+            -Filter DirectML.h -Recurse |
+            Select-Object -First 1
+          if ($null -eq $DIRECTML_HEADER) {
+            throw 'The ONNX Runtime DirectML build did not restore DirectML.h.'
+          }
+
+          $DIRECTML_INCLUDE_DIR = Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'include' 'directml'
+          New-Item -ItemType Directory -Path $DIRECTML_INCLUDE_DIR -Force | Out-Null
+          Copy-Item -Path (Join-Path $DIRECTML_HEADER.DirectoryName '*') -Destination $DIRECTML_INCLUDE_DIR -Recurse
+
       - name: Save ccache_ort
-        if: success() && steps.ccache-ort.outputs.cache-hit != 'true'
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true' && steps.ccache-ort.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_ORT_DIR }}
           key: ${{ steps.ccache-ort.outputs.cache-primary-key }}
 
       - name: Show ccache_ort stats
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         env:
           CCACHE_COMMAND: ${{ steps.setup-buildspec-deps.outputs.CCACHE_COMMAND }}
         run: |
           & $env:CCACHE_COMMAND --show-stats | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+      - name: Save installed ONNX Runtime DirectML prefix
+        if: steps.ort-prefix-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ort_installed
+            packages
+            vcpkg_ort_installed
+          key: ${{ steps.ort-prefix-cache.outputs.cache-primary-key }}
+
+      - name: Validate dependency prefixes and report provenance
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        env:
+          OBS_CACHE_HIT: ${{ steps.obs-prefix-cache.outputs.cache-hit }}
+          OBS_COMMIT: ${{ steps.dependency-revisions.outputs.OBS_COMMIT }}
+          OBS_VERSION: ${{ steps.buildspec.outputs.obs_studio_git_tag }}
+          ORT_CACHE_HIT: ${{ steps.ort-prefix-cache.outputs.cache-hit }}
+          ORT_COMMIT: ${{ steps.dependency-revisions.outputs.ORT_COMMIT }}
+          ORT_VERSION: ${{ steps.buildspec.outputs.onnxruntime_git_tag }}
+        run: |
+          $OBS_CONFIG = Get-ChildItem -LiteralPath obs_installed -Filter libobsConfig.cmake -Recurse | Select-Object -First 1
+          if ($null -eq $OBS_CONFIG) {
+            throw 'The installed OBS development prefix does not contain libobsConfig.cmake.'
+          }
+
+          $ORT_CONFIG = Get-ChildItem -LiteralPath ort_installed -Filter onnxruntimeConfig.cmake -Recurse | Select-Object -First 1
+          $DML_PROVIDER_LIBRARY = Get-ChildItem -LiteralPath ort_installed -Filter onnxruntime_providers_dml.lib -Recurse | Select-Object -First 1
+          $DML_PROVIDER_HEADER = Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'include' 'onnxruntime' 'dml_provider_factory.h'
+          $DIRECTML_DLL = Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'bin' 'DirectML.dll'
+
+          if ($null -eq $ORT_CONFIG) {
+            throw 'The installed ONNX Runtime prefix does not contain onnxruntimeConfig.cmake.'
+          }
+          if ($null -eq $DML_PROVIDER_LIBRARY) {
+            throw 'The installed ONNX Runtime prefix does not contain onnxruntime_providers_dml.lib.'
+          }
+          if (-not (Test-Path -LiteralPath $DML_PROVIDER_HEADER -PathType Leaf)) {
+            throw "The installed ONNX Runtime prefix does not contain $DML_PROVIDER_HEADER."
+          }
+          if (-not (Select-String -LiteralPath $DML_PROVIDER_HEADER -SimpleMatch 'SessionOptionsAppendExecutionProvider_DML2' -Quiet)) {
+            throw 'The installed ONNX Runtime DML header does not expose SessionOptionsAppendExecutionProvider_DML2.'
+          }
+          if (-not (Test-Path -LiteralPath $DIRECTML_DLL -PathType Leaf)) {
+            throw "The installed ONNX Runtime prefix does not contain $DIRECTML_DLL."
+          }
+
+          $OBS_SOURCE = if ($env:OBS_CACHE_HIT -eq 'true') { 'restored installed-prefix cache' } else { 'compiled from pinned source' }
+          $ORT_SOURCE = if ($env:ORT_CACHE_HIT -eq 'true') { 'restored installed-prefix cache' } else { 'compiled from pinned source with DirectML enabled' }
+          $REPORT = @(
+            '## Windows dependency provenance'
+            ''
+            "- OBS Studio: $env:OBS_VERSION ($env:OBS_COMMIT), $OBS_SOURCE; cache hit: $env:OBS_CACHE_HIT"
+            "- ONNX Runtime: $env:ORT_VERSION ($env:ORT_COMMIT), $ORT_SOURCE; cache hit: $env:ORT_CACHE_HIT"
+            "- ONNX Runtime linkage: static; intended execution providers: DirectML and CPU"
+            "- DirectML provider library: $($DML_PROVIDER_LIBRARY.FullName)"
+            "- DirectML runtime: $DIRECTML_DLL"
+          )
+          $REPORT | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          $REPORT
 
       - name: Configure (Windows)
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
@@ -336,7 +480,10 @@ jobs:
           cmake -S . -B build -G Ninja `
             "-DCMAKE_BUILD_TYPE=RelWithDebInfo" `
             "-DCMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH" `
-            "-DCMAKE_SYSTEM_VERSION=$env:CMAKE_SYSTEM_VERSION"
+            "-DCMAKE_SYSTEM_VERSION=$env:CMAKE_SYSTEM_VERSION" `
+            "-DDIRECTML_DLL=$(Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'bin' 'DirectML.dll')" `
+            "-DDIRECTML_INCLUDE_DIR=$(Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'include' 'directml')" `
+            "-DREQUIRE_ONNXRUNTIME_DML_EP=ON"
 
       - name: Build (Windows)
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
@@ -355,6 +502,22 @@ jobs:
 
           cmake --build build --config RelWithDebInfo --parallel
 
+      - name: Run DirectML MediaPipe smoke test (Windows)
+        shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
+        run: |
+          $LAUNCH_DEVSHELL = Join-Path (vswhere -version '[18,19)' -property installationPath) 'Common7' 'Tools' 'Launch-VsDevShell.ps1'
+          $VCPKG_COMMAND = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
+
+          $env:Path = 'C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32;C:\Windows'
+          $env:VCPKG_DISABLE_METRICS = '1'
+          $env:VCPKG_FORCE_DOWNLOADED_BINARIES = '1'
+          $CMAKE_BINDIR = & $VCPKG_COMMAND fetch cmake | Select-Object -Last 1 | Split-Path -Parent
+
+          & $LAUNCH_DEVSHELL -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+          $env:Path = "$(Join-Path $env:GITHUB_WORKSPACE 'ort_installed' 'bin');$CMAKE_BINDIR;$env:Path"
+
+          ctest --test-dir build -C RelWithDebInfo --output-on-failure -R DirectMLMediaPipeSmokeTest
+
       - name: Package dll artifact (Windows)
         shell: pwsh -Command "Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'; $PSNativeCommandUseErrorActionPreference = $true; . '{0}'"
         env:
@@ -369,6 +532,25 @@ jobs:
 
           cmake --install build --config RelWithDebInfo --prefix build_prefix
 
+          $PACKAGED_DIRECTML_DLL = Join-Path build_prefix 'obs-backgroundremoval' 'bin' '64bit' 'DirectML.dll'
+          $PACKAGED_PLUGIN_DLL = Join-Path build_prefix 'obs-backgroundremoval' 'bin' '64bit' 'obs-backgroundremoval.dll'
+          $PACKAGED_MEDIAPIPE_MODEL = Join-Path build_prefix 'obs-backgroundremoval' 'data' 'models' 'mediapipe.onnx'
+          if (-not (Test-Path -LiteralPath $PACKAGED_DIRECTML_DLL -PathType Leaf)) {
+            throw "DirectML.dll was not included in the Windows package at $PACKAGED_DIRECTML_DLL"
+          }
+          if (-not (Test-Path -LiteralPath $PACKAGED_PLUGIN_DLL -PathType Leaf)) {
+            throw "The plugin DLL was not included in the Windows package at $PACKAGED_PLUGIN_DLL"
+          }
+          if (-not (Test-Path -LiteralPath $PACKAGED_MEDIAPIPE_MODEL -PathType Leaf)) {
+            throw "The MediaPipe model was not included in the Windows package at $PACKAGED_MEDIAPIPE_MODEL"
+          }
+
+          '## Windows package contents' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          '' | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          Get-ChildItem -LiteralPath build_prefix -File -Recurse |
+            ForEach-Object { "- $($_.FullName.Substring((Resolve-Path build_prefix).Path.Length + 1))" } |
+            Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
           Set-Location build_prefix
           Compress-Archive -Path '*' -DestinationPath (Join-Path $env:GITHUB_WORKSPACE $env:DLL_ARTIFACT_NAME)
 
@@ -382,6 +564,7 @@ jobs:
         if: inputs.upload-artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          name: ${{ steps.expected-artifacts.outputs.DLL_ARTIFACT_NAME }}
           path: ${{ steps.expected-artifacts.outputs.DLL_ARTIFACT_NAME }}
           archive: false
           if-no-files-found: error

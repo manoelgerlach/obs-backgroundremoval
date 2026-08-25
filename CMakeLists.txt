@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -8,16 +9,23 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-set(PACKAGE_VERSION_SUFFIX "" CACHE STRING "Version suffix for plugin package")
+set(DIRECTML_DLL "" CACHE FILEPATH "Path to the DirectML redistributable DLL")
+set(DIRECTML_INCLUDE_DIR "" CACHE PATH "Path containing DirectML.h")
+option(REQUIRE_ONNXRUNTIME_DML_EP "Fail configuration when the ONNX Runtime DirectML EP is unavailable" OFF)
 
-block(PROPAGATE PLUGIN_VERSION)
+block(PROPAGATE PLUGIN_VERSION PLUGIN_PROJECT_VERSION)
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION_CONTENT)
   string(STRIP "${VERSION_CONTENT}" PLUGIN_VERSION)
+  string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" PLUGIN_PROJECT_VERSION "${PLUGIN_VERSION}")
+  if(NOT PLUGIN_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$")
+    message(FATAL_ERROR "VERSION must contain a SemVer-compatible version string.")
+  endif()
 endblock()
 
-project(obs-backgroundremoval VERSION "${PLUGIN_VERSION}" LANGUAGES C CXX)
+project(obs-backgroundremoval VERSION "${PLUGIN_PROJECT_VERSION}" LANGUAGES C CXX)
 
 include(CheckCXXSymbolExists)
+include(CheckCXXSourceCompiles)
 include(CMakePushCheckState)
 include(CTest)
 include(GNUInstallDirs)
@@ -25,7 +33,7 @@ include(GNUInstallDirs)
 include(./cmake/collect_licenses.cmake OPTIONAL)
 
 block(
-  PROPAGATE PLUGIN_DISPLAY_NAME PLUGIN_AUTHOR PLUGIN_EMAIL PLUGIN_BUNDLE_ID PLUGIN_LATEST_VERSION_URL
+  PROPAGATE PLUGIN_DISPLAY_NAME PLUGIN_AUTHOR PLUGIN_EMAIL PLUGIN_BUNDLE_ID PLUGIN_UPDATE_FEED_URL
 )
   file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/buildspec.props" BUILDSPEC_LINES)
   foreach(LINE IN LISTS BUILDSPEC_LINES)
@@ -72,7 +80,7 @@ target_compile_definitions(
   INTERFACE
     PLUGIN_NAME_STR="${CMAKE_PROJECT_NAME}"
     PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
-    PLUGIN_LATEST_VERSION_URL="${PLUGIN_LATEST_VERSION_URL}"
+    PLUGIN_UPDATE_FEED_URL="${PLUGIN_UPDATE_FEED_URL}"
     OBS_LOG_HEADER="[${CMAKE_PROJECT_NAME}] "
 )
 
@@ -202,7 +210,7 @@ block(PROPAGATE OpenCV_FOUND)
   endif()
 endblock()
 
-block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_ROCM_EP)
+block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_DML_EP HAVE_ONNXRUNTIME_ROCM_EP)
   set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON)
 
   find_program(Protobuf_PROTOC_EXECUTABLE NAMES protoc HINTS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES tools/protobuf)
@@ -236,6 +244,54 @@ block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_ROCM
   cmake_push_check_state(RESET)
   set(CMAKE_REQUIRED_LIBRARIES onnxruntime::onnxruntime)
   set(CMAKE_REQUIRED_QUIET TRUE)
+
+  if(MSVC)
+    set(CMAKE_REQUIRED_INCLUDES "${DIRECTML_INCLUDE_DIR}")
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    check_cxx_source_compiles(
+      [[
+        #if __has_include(<onnxruntime/dml_provider_factory.h>)
+        #include <onnxruntime/dml_provider_factory.h>
+        #elif __has_include(<dml_provider_factory.h>)
+        #include <dml_provider_factory.h>
+        #elif __has_include(<onnxruntime/core/providers/dml/dml_provider_factory.h>)
+        #include <onnxruntime/core/providers/dml/dml_provider_factory.h>
+        #else
+        #error "dml_provider_factory.h was not found"
+        #endif
+
+        int main()
+        {
+          auto append_dml2 = &OrtDmlApi::SessionOptionsAppendExecutionProvider_DML2;
+          OrtDmlDeviceOptions options{
+            OrtDmlPerformancePreference::HighPerformance,
+            OrtDmlDeviceFilter::Gpu,
+          };
+          (void)append_dml2;
+          (void)options;
+          return 0;
+        }
+      ]]
+      HAVE_ONNXRUNTIME_DML_EP
+    )
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE EXECUTABLE)
+
+    if(HAVE_ONNXRUNTIME_DML_EP)
+      message(STATUS "Building with ONNX Runtime DirectML EP.")
+      target_compile_definitions(BuildOptions INTERFACE HAVE_ONNXRUNTIME_DML_EP)
+      target_include_directories(BuildOptions INTERFACE "${DIRECTML_INCLUDE_DIR}")
+    else()
+      message(STATUS "Building without ONNX Runtime DirectML EP.")
+    endif()
+
+    if(REQUIRE_ONNXRUNTIME_DML_EP AND NOT HAVE_ONNXRUNTIME_DML_EP)
+      message(
+        FATAL_ERROR
+        "ONNX Runtime DirectML EP with OrtDmlApi::SessionOptionsAppendExecutionProvider_DML2 is required."
+      )
+    endif()
+    unset(CMAKE_REQUIRED_INCLUDES)
+  endif()
 
   check_onnxruntime_execution_provider(
     HAVE_ONNXRUNTIME_CUDA_EP
@@ -406,6 +462,10 @@ elseif(MSVC)
   set(OBS_PLUGIN_BIN_DIR "${CMAKE_PROJECT_NAME}/bin/64bit")
   set(OBS_PLUGIN_DATA_DIR "${CMAKE_PROJECT_NAME}/data")
 
+  if(HAVE_ONNXRUNTIME_DML_EP AND NOT EXISTS "${DIRECTML_DLL}")
+    message(FATAL_ERROR "DIRECTML_DLL must point to the DirectML.dll used to build ONNX Runtime.")
+  endif()
+
   install(
     TARGETS "${CMAKE_PROJECT_NAME}"
     RUNTIME DESTINATION "${OBS_PLUGIN_BIN_DIR}"
@@ -414,6 +474,9 @@ elseif(MSVC)
   install(FILES ${EFFECTS_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/effects")
   install(FILES ${LOCALE_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/locale")
   install(FILES ${MODELS_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/models" OPTIONAL)
+  if(HAVE_ONNXRUNTIME_DML_EP)
+    install(FILES "${DIRECTML_DLL}" DESTINATION "${OBS_PLUGIN_BIN_DIR}")
+  endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(OBS_PLUGIN_DATA_DIR "${CMAKE_INSTALL_DATAROOTDIR}/obs/obs-plugins/${CMAKE_PROJECT_NAME}")
   set(OBS_PLUGIN_DOC_DIR "${CMAKE_INSTALL_DATAROOTDIR}/doc/${CMAKE_PROJECT_NAME}")
@@ -442,7 +505,7 @@ endif()
 
 ### CPack configurations
 set(CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
-set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}${PACKAGE_VERSION_SUFFIX}")
+set(CPACK_PACKAGE_VERSION "${PLUGIN_VERSION}")
 set(CPACK_PACKAGE_CONTACT "${PLUGIN_AUTHOR} <${PLUGIN_EMAIL}>")
 
 set(CPACK_ARCHIVE_THREADS 0)

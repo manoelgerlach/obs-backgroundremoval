@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 name: Check CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
     tags: ["*"]

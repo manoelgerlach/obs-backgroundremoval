@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
 // SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -37,6 +38,18 @@
 #endif
 #endif // HAVE_ONNXRUNTIME_ROCM_EP
 
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+#if __has_include(<onnxruntime/dml_provider_factory.h>)
+#include <onnxruntime/dml_provider_factory.h>
+#elif __has_include(<dml_provider_factory.h>)
+#include <dml_provider_factory.h>
+#elif __has_include(<onnxruntime/core/providers/dml/dml_provider_factory.h>)
+#include <onnxruntime/core/providers/dml/dml_provider_factory.h>
+#else
+#error "dml_provider_factory.h was not found"
+#endif
+#endif // HAVE_ONNXRUNTIME_DML_EP
+
 #if defined(__APPLE__)
 #if __has_include(<onnxruntime/coreml_provider_factory.h>)
 #include <onnxruntime/coreml_provider_factory.h>
@@ -60,10 +73,26 @@
 
 int createOrtSession(filter_data *tf)
 {
+	tf->session.reset();
+
 	if (tf->model.get() == nullptr) {
 		obs_log(LOG_ERROR, "Model object is not initialized");
 		return OBS_BGREMOVAL_ORT_SESSION_ERROR_INVALID_MODEL;
 	}
+
+	const bool directMLSelected = tf->useGPU == USEGPU_DML;
+	obs_log(LOG_INFO, "ONNX Runtime session requested: model=%s, inference device=%s, ONNX Runtime version=%s",
+		tf->modelSelection.c_str(), tf->useGPU.c_str(), OrtGetApiBase()->GetVersionString());
+	obs_log(LOG_INFO, "DirectML initialization attempted: %s", directMLSelected ? "yes" : "no");
+
+#ifndef HAVE_ONNXRUNTIME_DML_EP
+	if (directMLSelected) {
+		obs_log(LOG_ERROR,
+			"DirectML initialization result: failure; this build does not include the ONNX Runtime DirectML EP");
+		obs_log(LOG_ERROR, "CPU EP fallback used: no; DirectML session creation aborted");
+		return OBS_BGREMOVAL_ORT_SESSION_ERROR_STARTUP;
+	}
+#endif
 
 	Ort::SessionOptions sessionOptions;
 
@@ -96,6 +125,22 @@ int createOrtSession(filter_data *tf)
 	bfree(modelFilepath_rawPtr);
 
 	try {
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+		if (directMLSelected) {
+			obs_log(LOG_INFO, "Initializing ONNX Runtime DirectML EP on the high-performance GPU");
+			sessionOptions.AddConfigEntry("session.disable_cpu_ep_fallback", "1");
+
+			const void *providerApi = nullptr;
+			Ort::ThrowOnError(Ort::GetApi().GetExecutionProviderApi("DML", ORT_API_VERSION, &providerApi));
+			const auto *dmlApi = static_cast<const OrtDmlApi *>(providerApi);
+
+			OrtDmlDeviceOptions deviceOptions{};
+			deviceOptions.Preference = OrtDmlPerformancePreference::HighPerformance;
+			deviceOptions.Filter = OrtDmlDeviceFilter::Gpu;
+			Ort::ThrowOnError(
+				dmlApi->SessionOptionsAppendExecutionProvider_DML2(sessionOptions, &deviceOptions));
+		}
+#endif
 #ifdef HAVE_ONNXRUNTIME_CUDA_EP
 		if (tf->useGPU == USEGPU_CUDA) {
 			Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_CUDA(sessionOptions, 0));
@@ -125,8 +170,23 @@ int createOrtSession(filter_data *tf)
 		}
 #endif
 		tf->session.reset(new Ort::Session(*tf->env, tf->modelFilepath.c_str(), sessionOptions));
+#ifdef HAVE_ONNXRUNTIME_DML_EP
+		if (directMLSelected) {
+			obs_log(LOG_INFO,
+				"DirectML initialization result: success; CPU EP fallback used: no (disabled for this session)");
+		}
+#endif
+		if (tf->useGPU == USEGPU_CPU) {
+			obs_log(LOG_INFO,
+				"CPU inference session initialized successfully; CPU fallback used: no (CPU was explicitly selected)");
+		}
 	} catch (const std::exception &e) {
-		obs_log(LOG_ERROR, "%s", e.what());
+		if (directMLSelected) {
+			obs_log(LOG_ERROR, "DirectML initialization result: failure: %s", e.what());
+			obs_log(LOG_ERROR, "CPU EP fallback used: no; DirectML session creation aborted");
+		} else {
+			obs_log(LOG_ERROR, "%s", e.what());
+		}
 		return OBS_BGREMOVAL_ORT_SESSION_ERROR_STARTUP;
 	}
 

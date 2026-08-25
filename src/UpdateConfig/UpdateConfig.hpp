@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -7,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 
@@ -56,10 +58,17 @@ inline void fetchLatestVersionAsync(std::string url)
 	fetchLatestVersionAsync(std::move(url), PLUGIN_NAME_STR "/" PLUGIN_VERSION_STR);
 }
 
-#ifdef PLUGIN_LATEST_VERSION_URL
+#ifdef PLUGIN_UPDATE_FEED_URL
+inline bool hasConfiguredUpdateFeed() noexcept
+{
+	return !std::string_view{PLUGIN_UPDATE_FEED_URL}.empty();
+}
+
 inline void fetchLatestVersionAsync()
 {
-	fetchLatestVersionAsync(PLUGIN_LATEST_VERSION_URL, PLUGIN_NAME_STR "/" PLUGIN_VERSION_STR);
+	if (hasConfiguredUpdateFeed()) {
+		fetchLatestVersionAsync(PLUGIN_UPDATE_FEED_URL, PLUGIN_NAME_STR "/" PLUGIN_VERSION_STR);
+	}
 }
 #endif
 #endif

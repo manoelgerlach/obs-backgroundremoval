@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -37,9 +38,11 @@ bool show()
 	}
 
 	UpdateConfig::Request getRequest = UpdateConfig::GetCheckForUpdatesEnabledRequest{};
-	const bool updateNotificationsEnabled = UpdateConfig::doRequest(getRequest);
+	const bool updateFeedAvailable = UpdateConfig::hasConfiguredUpdateFeed();
+	const bool updateNotificationsEnabled = updateFeedAvailable && UpdateConfig::doRequest(getRequest);
 
-	auto *dialog = new AboutDialog(QString::fromUtf8(PLUGIN_VERSION_STR), parent, updateNotificationsEnabled);
+	auto *dialog = new AboutDialog(QString::fromUtf8(PLUGIN_VERSION_STR), parent, updateNotificationsEnabled,
+				       updateFeedAvailable);
 	dialog->setAttribute(Qt::WA_DeleteOnClose);
 	QObject::connect(dialog, &QDialog::finished, dialog, [dialog](int) {
 		const bool enabled = dialog->updateNotificationsEnabled();

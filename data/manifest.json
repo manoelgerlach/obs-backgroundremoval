@@ -1,15 +1,15 @@
 {
-  "display_name": "OBS Background Removal",
-  "id": "com.royshilkrot.obs-backgroundremoval",
-  "version": "1.4.1",
+  "display_name": "OBS Background Removal — Windows DirectML Fork",
+  "id": "us.manoel.obs-backgroundremoval.directml",
+  "version": "1.4.1-directml.1",
   "name": "obs-backgroundremoval",
-  "description": "OBS Plugin: Portrait Background Removal / Virtual Green-screen and Low-Light Enhancement",
-  "long_description": "A plugin for OBS Studio that allows you to replace the background in portrait images and video, as well as enhance low-light scenes.",
+  "description": "Unofficial Windows DirectML fork of the OBS Background Removal plugin",
+  "long_description": "An unofficial modified fork of royshil/obs-backgroundremoval maintained by Manoel Gerlach, with restored Windows ONNX Runtime DirectML GPU inference.",
   "os_arch": "windows-x64, macos, ubuntu-x86_64",
   "urls": {
-    "repository": "https://github.com/royshil/obs-backgroundremoval",
-    "website": "https://royshil.github.io/obs-backgroundremoval/",
-    "support": "https://github.com/royshil/obs-backgroundremoval/issues"
+    "repository": "https://github.com/manoelgerlach/obs-backgroundremoval",
+    "website": "https://github.com/manoelgerlach/obs-backgroundremoval",
+    "support": "https://github.com/manoelgerlach/obs-backgroundremoval/issues"
   },
   "has_banner": true,
   "has_icon": true

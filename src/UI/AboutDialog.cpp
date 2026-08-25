@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,18 +22,16 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-AboutDialog::AboutDialog(const QString &version, QWidget *parent, bool updateNotificationsEnabled)
+AboutDialog::AboutDialog(const QString &version, QWidget *parent, bool updateNotificationsEnabled,
+			 bool updateFeedAvailable)
 	: QDialog(parent),
 	  logoLabel(new QLabel(this)),
 	  productNameLabel(new QLabel(this)),
 	  authorLabel(new QLabel(this)),
 	  versionLabel(new QLabel(this)),
 	  officialSiteLink(new QLabel(this)),
-	  officialSiteSeparator(new QLabel(this)),
 	  githubLink(new QLabel(this)),
-	  githubSeparator(new QLabel(this)),
 	  communityLink(new QLabel(this)),
-	  communitySeparator(new QLabel(this)),
 	  obsForumLink(new QLabel(this)),
 	  headerSeparator(new QFrame(this)),
 	  descriptionLabel(new QLabel(this)),
@@ -49,7 +48,7 @@ AboutDialog::AboutDialog(const QString &version, QWidget *parent, bool updateNot
 	  licensesTextEdit(new QPlainTextEdit(licensesDialog)),
 	  licensesButtonBox(new QDialogButtonBox(QDialogButtonBox::Close, licensesDialog))
 {
-	setupUi(version, updateNotificationsEnabled);
+	setupUi(version, updateNotificationsEnabled, updateFeedAvailable);
 }
 
 AboutDialog::~AboutDialog() noexcept = default;
@@ -59,7 +58,7 @@ bool AboutDialog::updateNotificationsEnabled() const
 	return enableUpdateNotifications->isChecked();
 }
 
-void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnabled)
+void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnabled, bool updateFeedAvailable)
 {
 	setWindowTitle(tr("About obs-backgroundremoval"));
 	setModal(true);
@@ -77,7 +76,7 @@ void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnable
 	headerLayout->addWidget(logoLabel);
 
 	auto *productLayout = new QVBoxLayout;
-	productNameLabel->setText(tr("Portrait Background Removal / Virtual Green-screen and Low-Light Enhancement"));
+	productNameLabel->setText(tr("obs-backgroundremoval — Windows DirectML fork"));
 	QFont productNameFont = productNameLabel->font();
 	productNameFont.setPointSizeF(productNameFont.pointSizeF() * 1.5);
 	productNameFont.setBold(true);
@@ -89,12 +88,9 @@ void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnable
 		QStringLiteral("<a href=\"https://github.com/royshil\">%1</a>").arg(tr("Roy Shilkrot (royshil)"));
 	const QString umireonLink =
 		QStringLiteral("<a href=\"https://github.com/umireon\">%1</a>").arg(tr("Kaito Udagawa (umireon)"));
-	authorLabel->setText(tr("%1 and %2").arg(royshilLink, umireonLink));
+	authorLabel->setText(tr("Original authors: %1 and %2").arg(royshilLink, umireonLink));
 	productLayout->addWidget(authorLabel);
-	const QString latestVersionLink =
-		QStringLiteral("<a href=\"https://github.com/royshil/obs-backgroundremoval/releases\">%1</a>")
-			.arg(tr("Check for latest version"));
-	versionLabel->setText(tr("Version %1 — %2").arg(version, latestVersionLink));
+	versionLabel->setText(tr("Version %1").arg(version));
 	productLayout->addWidget(versionLabel);
 	headerLayout->addLayout(productLayout, 1);
 	rootLayout->addLayout(headerLayout);
@@ -103,50 +99,58 @@ void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnable
 	headerSeparator->setFrameShadow(QFrame::Sunken);
 	rootLayout->addWidget(headerSeparator);
 
+	const QString manoelLink =
+		QStringLiteral("<a href=\"https://github.com/manoelgerlach\">%1</a>").arg(tr("Manoel Gerlach"));
 	descriptionLabel->setText(
-		tr("An OBS plugin for removing background in portrait images (video), making it easy to "
-		   "replace the background when recording or streaming."));
+		tr("<b>Unofficial modified fork</b><br><br>"
+		   "This build is based on the open-source obs-backgroundremoval project by Roy Shilkrot and "
+		   "Kaito Udagawa and is not an official upstream release.<br><br>"
+		   "This fork restores ONNX Runtime DirectML GPU inference support on Windows and includes "
+		   "additional Windows-specific build, packaging, diagnostics, and validation changes.<br><br>"
+		   "Fork maintainer and modifications (2026): %1")
+			.arg(manoelLink));
+	descriptionLabel->setTextFormat(Qt::RichText);
 	descriptionLabel->setWordWrap(true);
 	rootLayout->addWidget(descriptionLabel);
 
-	auto *linksLayout = new QHBoxLayout;
-	officialSiteLink->setText(QStringLiteral("<a href=\"https://royshil.github.io/obs-backgroundremoval/\">%1</a>")
-					  .arg(tr("Official Site")));
+	auto *linksLayout = new QVBoxLayout;
+	officialSiteLink->setText(
+		QStringLiteral("<a href=\"https://github.com/manoelgerlach/obs-backgroundremoval\">%1</a>")
+			.arg(tr("Fork Repository")));
 	linksLayout->addWidget(officialSiteLink);
-	linksLayout->addWidget(officialSiteSeparator);
-	githubLink->setText(
-		QStringLiteral("<a href=\"https://github.com/royshil/obs-backgroundremoval\">%1</a>").arg(tr("GitHub")));
+	githubLink->setText(QStringLiteral("<a href=\"https://github.com/royshil/obs-backgroundremoval\">%1</a>")
+				    .arg(tr("Original / Upstream Project")));
 	linksLayout->addWidget(githubLink);
-	linksLayout->addWidget(githubSeparator);
-	communityLink->setText(
-		QStringLiteral("<a href=\"https://github.com/royshil/obs-backgroundremoval/discussions\">%1</a>")
-			.arg(tr("Community")));
+	communityLink->setText(QStringLiteral("<a href=\"https://royshil.github.io/obs-backgroundremoval/\">%1</a>")
+				       .arg(tr("Original Project Site")));
 	linksLayout->addWidget(communityLink);
-	linksLayout->addWidget(communitySeparator);
 	obsForumLink->setText(QStringLiteral("<a href=\"https://obsproject.com/forum/resources/"
 					     "background-removal-virtual-green-screen-low-light-enhance.1260/\">%1</a>")
 				      .arg(tr("OBS Forum")));
 	linksLayout->addWidget(obsForumLink);
-	linksLayout->addStretch();
 	rootLayout->addLayout(linksLayout);
 
 	updateNotificationFrame->setAutoFillBackground(true);
 	updateNotificationFrame->setBackgroundRole(QPalette::Base);
 	auto *updateNotificationLayout = new QVBoxLayout(updateNotificationFrame);
 
-	enableUpdateNotifications->setText(tr("Notify me about new versions on its Filter Properties screen"));
+	enableUpdateNotifications->setText(
+		updateFeedAvailable ? tr("Notify me about new fork versions on the Filter Properties screen")
+				    : tr("Automatic update checking is disabled for this fork"));
 	QFont updateNotificationHeadingFont = enableUpdateNotifications->font();
 	updateNotificationHeadingFont.setBold(true);
 	enableUpdateNotifications->setFont(updateNotificationHeadingFont);
-	enableUpdateNotifications->setChecked(updateNotificationsEnabled);
+	enableUpdateNotifications->setChecked(updateFeedAvailable && updateNotificationsEnabled);
+	enableUpdateNotifications->setEnabled(updateFeedAvailable);
 	updateNotificationLayout->addWidget(enableUpdateNotifications);
 
 	const QString updateCheckDescriptionText =
-		tr("When OBS Studio starts, the plugin downloads one plain-text file from our project's GitHub Pages "
-		   "site [1]. It sends no additional information. This copy of the plugin never sends diagnostic, "
-		   "analytics, or usage data to its authors or to any third party other than GitHub. Whenever a new "
-		   "version is available, a small message appears in the first row of the filter settings. The plugin "
-		   "never downloads or installs updates.");
+		updateFeedAvailable ? tr("When OBS Studio starts, the plugin checks the configured fork "
+					 "release feed. The plugin never downloads or installs updates.")
+				    : tr("No fork release feed is configured. This build does not query "
+					 "the original project's release metadata or perform automatic update "
+					 "checks. Use the repository links above to review fork and upstream "
+					 "project information.");
 	updateCheckDescription->setText(QStringLiteral("<div style=\"line-height: 80%;\">%1</div>")
 						.arg(updateCheckDescriptionText.toHtmlEscaped()));
 	updateCheckDescription->setTextFormat(Qt::RichText);
@@ -156,20 +160,13 @@ void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnable
 	updateCheckDescription->setContentsMargins(24, 0, 0, 0);
 	updateNotificationLayout->addWidget(updateCheckDescription);
 
-	updateCheckUrlLabel->setText(
-		QStringLiteral("[1] <a href=\"https://royshil.github.io/obs-backgroundremoval/metadata/"
-			       "latest-version.txt\">https://royshil.github.io/obs-backgroundremoval/metadata/"
-			       "latest-version.txt</a>"));
-	updateCheckUrlLabel->setTextFormat(Qt::RichText);
-	updateCheckUrlLabel->setTextInteractionFlags(Qt::TextBrowserInteraction | Qt::TextSelectableByKeyboard);
-	updateCheckUrlLabel->setOpenExternalLinks(true);
-	updateCheckUrlLabel->setWordWrap(true);
-	updateCheckUrlLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-	updateCheckUrlLabel->setContentsMargins(24, 0, 0, 0);
-	updateNotificationLayout->addWidget(updateCheckUrlLabel);
+	updateCheckUrlLabel->setVisible(false);
 	rootLayout->addWidget(updateNotificationFrame);
 
-	copyrightLabel->setText(tr("Copyright © 2021–2026 Roy Shilkrot and © 2023–2026 Kaito Udagawa."));
+	copyrightLabel->setText(tr("Copyright © 2021–2026 Roy Shilkrot<br>"
+				   "Copyright © 2023–2026 Kaito Udagawa<br>"
+				   "Windows DirectML fork modifications © 2026 Manoel Gerlach"));
+	copyrightLabel->setTextFormat(Qt::RichText);
 	copyrightLabel->setWordWrap(true);
 	rootLayout->addWidget(copyrightLabel);
 
@@ -179,19 +176,15 @@ void AboutDialog::setupUi(const QString &version, bool updateNotificationsEnable
 	legalNoticeLabel->setWordWrap(true);
 	rootLayout->addWidget(legalNoticeLabel);
 
-	for (QLabel *label : {productNameLabel, descriptionLabel, copyrightLabel, legalNoticeLabel}) {
+	for (QLabel *label : {productNameLabel, copyrightLabel, legalNoticeLabel}) {
 		label->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
 	}
 
-	for (QLabel *link : {authorLabel, versionLabel, officialSiteLink, githubLink, communityLink, obsForumLink}) {
+	for (QLabel *link :
+	     {authorLabel, descriptionLabel, versionLabel, officialSiteLink, githubLink, communityLink, obsForumLink}) {
 		link->setTextFormat(Qt::RichText);
 		link->setTextInteractionFlags(Qt::TextBrowserInteraction | Qt::TextSelectableByKeyboard);
 		link->setOpenExternalLinks(true);
-	}
-
-	for (QLabel *separator : {officialSiteSeparator, githubSeparator, communitySeparator}) {
-		separator->setText(QStringLiteral("·"));
-		separator->setForegroundRole(QPalette::PlaceholderText);
 	}
 
 	rootLayout->addStretch();

@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -16,23 +17,21 @@ class QString;
 
 class AboutDialog : public QDialog {
 public:
-	explicit AboutDialog(const QString &version, QWidget *parent = nullptr, bool updateNotificationsEnabled = true);
+	explicit AboutDialog(const QString &version, QWidget *parent = nullptr, bool updateNotificationsEnabled = false,
+			     bool updateFeedAvailable = false);
 	~AboutDialog() noexcept override;
 	bool updateNotificationsEnabled() const;
 
 private:
-	void setupUi(const QString &version, bool updateNotificationsEnabled);
+	void setupUi(const QString &version, bool updateNotificationsEnabled, bool updateFeedAvailable);
 
 	QLabel *const logoLabel;
 	QLabel *const productNameLabel;
 	QLabel *const authorLabel;
 	QLabel *const versionLabel;
 	QLabel *const officialSiteLink;
-	QLabel *const officialSiteSeparator;
 	QLabel *const githubLink;
-	QLabel *const githubSeparator;
 	QLabel *const communityLink;
-	QLabel *const communitySeparator;
 	QLabel *const obsForumLink;
 	QFrame *const headerSeparator;
 	QLabel *const descriptionLabel;

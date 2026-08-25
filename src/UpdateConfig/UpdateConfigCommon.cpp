@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -54,13 +55,13 @@ bool doRequest(Request &request)
 	}
 	std::unique_ptr<config_t, void (*)(config_t *)> config_(config, &config_close);
 
-	config_set_default_bool(config, "update", "check_for_updates", true);
+	config_set_default_bool(config, "update", "check_for_updates", false);
 
 	if (firstRunRequest) {
 		const char *storedVersion = config_get_string(config, "update", "version");
 		if (!storedVersion || firstRunRequest->pluginVersion != storedVersion) {
 			if (!config_has_user_value(config, "update", "check_for_updates")) {
-				config_set_bool(config, "update", "check_for_updates", true);
+				config_set_bool(config, "update", "check_for_updates", false);
 			}
 			config_set_string(config, "update", "version", firstRunRequest->pluginVersion.c_str());
 		} else {

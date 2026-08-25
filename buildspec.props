@@ -1,12 +1,14 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 PLUGIN_DISPLAY_NAME=OBS Background Removal
-PLUGIN_AUTHOR=Roy Shilkrot
-PLUGIN_EMAIL=roy.shil@gmail.com
-PLUGIN_BUNDLE_ID=com.royshilkrot.obs-backgroundremoval
-PLUGIN_LATEST_VERSION_URL=https://royshil.github.io/obs-backgroundremoval/metadata/latest-version.txt
+PLUGIN_AUTHOR=Manoel Gerlach
+PLUGIN_EMAIL=mail@manoel.us
+PLUGIN_BUNDLE_ID=us.manoel.obs-backgroundremoval.directml
+# No automatic release feed is configured for this unofficial fork.
+PLUGIN_UPDATE_FEED_URL=
 
 onnxruntime_reduced_ops_config=src/required_operators.config
 osx_deployment_target=13.0

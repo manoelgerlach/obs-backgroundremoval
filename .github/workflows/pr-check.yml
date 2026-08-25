@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -21,63 +22,6 @@ jobs:
     permissions:
       contents: read
     with:
-      upload-artifacts: ${{ contains(github.event.pull_request.labels.*.name, 'upload-artifacts') }}
+      upload-artifacts: true
       attest-artifacts: false
       runs-on: windows-2025-vs2026
-
-  build-macos-arm64:
-    uses: ./.github/workflows/build-macos.yml
-    permissions:
-      contents: read
-    with:
-      attest-artifacts: false
-      notarize: false
-      x86_64: false
-      TAHOE_DEVELOPER_DIR: /Applications/Xcode_26.5.app
-
-  build-macos-x86_64:
-    uses: ./.github/workflows/build-macos.yml
-    permissions:
-      contents: read
-    with:
-      attest-artifacts: false
-      notarize: false
-      x86_64: true
-      TAHOE_DEVELOPER_DIR: /Applications/Xcode_26.5.app
-
-  build-debian-amd64:
-    uses: ./.github/workflows/build-debian.yml
-    permissions:
-      contents: read
-    with:
-      attest-artifacts: false
-      arm64: false
-
-  build-debian-arm64:
-    uses: ./.github/workflows/build-debian.yml
-    permissions:
-      contents: read
-    with:
-      attest-artifacts: false
-      arm64: true
-
-  build-ubuntu-amd64:
-    uses: ./.github/workflows/build-ubuntu.yml
-    permissions:
-      contents: read
-    with:
-      attest-artifacts: false
-      arm64: false
-
-  build-ubuntu-arm64:
-    uses: ./.github/workflows/build-ubuntu.yml
-    permissions:
-      contents: read
-    with:
-      attest-artifacts: false
-      arm64: true
-
-  build-arch:
-    uses: ./.github/workflows/build-arch.yml
-    permissions:
-      contents: read

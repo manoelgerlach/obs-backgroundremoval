@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
  * SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+ * SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -21,6 +22,7 @@ const char *const MODEL_DEPTH_TCMONODEPTH = "models/tcmonodepth_tcsmallnet_192x3
 
 const char *const USEGPU_CPU = "cpu";
 const char *const USEGPU_CUDA = "cuda";
+const char *const USEGPU_DML = "dml";
 const char *const USEGPU_ROCM = "rocm";
 const char *const USEGPU_MIGRAPHX = "migraphx";
 const char *const USEGPU_TENSORRT = "tensorrt";
