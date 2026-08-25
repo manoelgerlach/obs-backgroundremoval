@@ -36,7 +36,7 @@ namespace {
 std::vector<int64_t> getFixedShape(const Ort::Session &session, size_t index, bool input)
 {
 	Ort::TypeInfo typeInfo = input ? session.GetInputTypeInfo(index) : session.GetOutputTypeInfo(index);
-	Ort::TensorTypeAndShapeInfo tensorInfo = typeInfo.GetTensorTypeAndShapeInfo();
+	auto tensorInfo = typeInfo.GetTensorTypeAndShapeInfo();
 	if (tensorInfo.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
 		throw std::runtime_error("MediaPipe smoke test requires float tensors");
 	}
