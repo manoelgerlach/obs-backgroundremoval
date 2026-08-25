@@ -11,13 +11,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 > [!IMPORTANT]
 > **Unofficial modified fork**
 >
-> This repository is an unofficial modified fork of the open-source
+> This repository is an **unofficial modified fork** of the open-source
 > [obs-backgroundremoval](https://github.com/royshil/obs-backgroundremoval) project. It is not an official
 > upstream release.
 >
 > - **Original authors:** [Roy Shilkrot (royshil)](https://github.com/royshil) and
 >   [Kaito Udagawa (umireon)](https://github.com/umireon)
-> - **Fork maintainer:** [Manoel Gerlach](https://github.com/manoelgerlach)
+> - **Fork maintainer:** [Manoel Gerlach (manoelgerlach)](https://github.com/manoelgerlach)
 > - **Current fork version:** `1.4.1-directml.1`
 > - **Primary fork feature:** Windows x64 ONNX Runtime DirectML GPU inference
 
@@ -34,16 +34,6 @@ enhancement features while restoring Windows GPU inference through the ONNX Runt
 A plugin for [OBS Studio](https://obsproject.com/) that allows you to replace the background in portrait images and video, as well as enhance low-light scenes.
 
 ## Fork downloads and Windows installation
-
-### Fork Releases
-
-No formal fork release has been published yet. Development packages are produced by the repository's
-[GitHub Actions workflows](https://github.com/manoelgerlach/obs-backgroundremoval/actions). A formal release will
-follow after release-readiness work is complete.
-
-The validated Windows x64 development artifact is named:
-
-`obs-backgroundremoval_1.4.1-directml.1-windows-x64.zip`
 
 ### Install the Windows x64 package
 
@@ -164,8 +154,7 @@ GPU support:
 - The Windows package includes `DirectML.dll` beside `obs-backgroundremoval.dll`.
 - DirectML availability and performance depend on the Windows, GPU, and driver configuration. No specific speedup is
   guaranteed.
-- CPU inference remains available as an explicit selection. A DirectML initialization failure is reported and is not
-  silently presented as successful GPU inference.
+- CPU inference remains available as an explicit selection.
 
 Upstream/cross-platform notes, not revalidated as part of this Windows fork work:
 
