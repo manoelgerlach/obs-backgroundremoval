@@ -11,6 +11,11 @@ endif()
 set(PACKAGE_VERSION_SUFFIX "" CACHE STRING "Version suffix for plugin package")
 set(DIRECTML_DLL "" CACHE FILEPATH "Path to the DirectML redistributable DLL")
 set(DIRECTML_INCLUDE_DIR "" CACHE PATH "Path containing DirectML.h")
+option(
+  REQUIRE_ONNXRUNTIME_DML_EP
+  "Fail configuration when the ONNX Runtime DirectML EP is unavailable"
+  OFF
+)
 
 block(PROPAGATE PLUGIN_VERSION)
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION_CONTENT)
@@ -20,6 +25,7 @@ endblock()
 project(obs-backgroundremoval VERSION "${PLUGIN_VERSION}" LANGUAGES C CXX)
 
 include(CheckCXXSymbolExists)
+include(CheckCXXSourceCompiles)
 include(CMakePushCheckState)
 include(CTest)
 include(GNUInstallDirs)
@@ -241,13 +247,34 @@ block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_DML_
 
   if(MSVC)
     set(CMAKE_REQUIRED_INCLUDES "${DIRECTML_INCLUDE_DIR}")
-    check_onnxruntime_execution_provider(
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    check_cxx_source_compiles(
+      [[
+        #if __has_include(<onnxruntime/dml_provider_factory.h>)
+        #include <onnxruntime/dml_provider_factory.h>
+        #elif __has_include(<dml_provider_factory.h>)
+        #include <dml_provider_factory.h>
+        #elif __has_include(<onnxruntime/core/providers/dml/dml_provider_factory.h>)
+        #include <onnxruntime/core/providers/dml/dml_provider_factory.h>
+        #else
+        #error "dml_provider_factory.h was not found"
+        #endif
+
+        int main()
+        {
+          auto append_dml2 = &OrtDmlApi::SessionOptionsAppendExecutionProvider_DML2;
+          OrtDmlDeviceOptions options{
+            OrtDmlPerformancePreference::HighPerformance,
+            OrtDmlDeviceFilter::Gpu,
+          };
+          (void)append_dml2;
+          (void)options;
+          return 0;
+        }
+      ]]
       HAVE_ONNXRUNTIME_DML_EP
-      OrtSessionOptionsAppendExecutionProvider_DML
-      dml_provider_factory.h
-      onnxruntime/dml_provider_factory.h
-      onnxruntime/core/providers/dml/dml_provider_factory.h
     )
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE EXECUTABLE)
 
     if(HAVE_ONNXRUNTIME_DML_EP)
       message(STATUS "Building with ONNX Runtime DirectML EP.")
@@ -255,6 +282,13 @@ block(PROPAGATE onnxruntime_FOUND HAVE_ONNXRUNTIME_CUDA_EP HAVE_ONNXRUNTIME_DML_
       target_include_directories(BuildOptions INTERFACE "${DIRECTML_INCLUDE_DIR}")
     else()
       message(STATUS "Building without ONNX Runtime DirectML EP.")
+    endif()
+
+    if(REQUIRE_ONNXRUNTIME_DML_EP AND NOT HAVE_ONNXRUNTIME_DML_EP)
+      message(
+        FATAL_ERROR
+        "ONNX Runtime DirectML EP with OrtDmlApi::SessionOptionsAppendExecutionProvider_DML2 is required."
+      )
     endif()
     unset(CMAKE_REQUIRED_INCLUDES)
   endif()
