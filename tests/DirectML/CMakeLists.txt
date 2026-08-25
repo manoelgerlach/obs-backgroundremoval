@@ -17,4 +17,10 @@ add_test(
   NAME DirectMLMediaPipeSmokeTest
   COMMAND DirectMLMediaPipeSmokeTest "${CMAKE_SOURCE_DIR}/data/models/mediapipe.onnx"
 )
-set_tests_properties(DirectMLMediaPipeSmokeTest PROPERTIES LABELS "directml;gpu" TIMEOUT 120)
+set_tests_properties(
+  DirectMLMediaPipeSmokeTest
+  PROPERTIES
+    LABELS "directml;gpu"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 120
+)

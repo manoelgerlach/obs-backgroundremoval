@@ -29,6 +29,7 @@
 #include <iostream>
 #include <numeric>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -119,6 +120,15 @@ int main(int argc, char **argv)
 
 		std::cout << "DirectML MediaPipe smoke test completed 100 consecutive inferences\n";
 		return 0;
+	} catch (const Ort::Exception &exception) {
+		const std::string_view message(exception.what());
+		if (message.find("No devices detected that match the filter criteria") != std::string_view::npos) {
+			std::cerr << "DirectML MediaPipe smoke test skipped: no matching GPU device was detected\n";
+			return 77;
+		}
+
+		std::cerr << "DirectML MediaPipe smoke test failed: " << exception.what() << '\n';
+		return 1;
 	} catch (const std::exception &exception) {
 		std::cerr << "DirectML MediaPipe smoke test failed: " << exception.what() << '\n';
 		return 1;
