@@ -200,12 +200,3 @@ This video on YouTube will take you through the major parts of the code and expl
     <img width="50%" src="https://img.youtube.com/vi/iFQtcJg0Wsk/maxresdefault.jpg"/>
   </a>
 </div>
-
-## Download Trends and Star History
-
-<div align="center">
-
-![Download Trends](docs/download-trends.svg)
-![GitHub Star History](docs/star-history.svg)
-
-</div>
