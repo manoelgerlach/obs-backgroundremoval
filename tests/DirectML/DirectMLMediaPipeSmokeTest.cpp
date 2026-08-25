@@ -72,6 +72,7 @@ int main(int argc, char **argv)
 		sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 		sessionOptions.DisableMemPattern();
 		sessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
+		sessionOptions.AddConfigEntry("session.disable_cpu_ep_fallback", "1");
 
 		const void *providerApi = nullptr;
 		Ort::ThrowOnError(Ort::GetApi().GetExecutionProviderApi("DML", ORT_API_VERSION, &providerApi));

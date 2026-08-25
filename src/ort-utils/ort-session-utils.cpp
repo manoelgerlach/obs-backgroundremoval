@@ -72,15 +72,23 @@
 
 int createOrtSession(filter_data *tf)
 {
+	tf->session.reset();
+
 	if (tf->model.get() == nullptr) {
 		obs_log(LOG_ERROR, "Model object is not initialized");
 		return OBS_BGREMOVAL_ORT_SESSION_ERROR_INVALID_MODEL;
 	}
 
+	const bool directMLSelected = tf->useGPU == USEGPU_DML;
+	obs_log(LOG_INFO, "ONNX Runtime session requested: model=%s, inference device=%s, ONNX Runtime version=%s",
+		tf->modelSelection.c_str(), tf->useGPU.c_str(), OrtGetApiBase()->GetVersionString());
+	obs_log(LOG_INFO, "DirectML initialization attempted: %s", directMLSelected ? "yes" : "no");
+
 #ifndef HAVE_ONNXRUNTIME_DML_EP
-	if (tf->useGPU == USEGPU_DML) {
+	if (directMLSelected) {
 		obs_log(LOG_ERROR,
-			"DirectML was selected, but this build does not include the ONNX Runtime DirectML EP");
+			"DirectML initialization result: failure; this build does not include the ONNX Runtime DirectML EP");
+		obs_log(LOG_ERROR, "CPU EP fallback used: no; DirectML session creation aborted");
 		return OBS_BGREMOVAL_ORT_SESSION_ERROR_STARTUP;
 	}
 #endif
@@ -117,9 +125,9 @@ int createOrtSession(filter_data *tf)
 
 	try {
 #ifdef HAVE_ONNXRUNTIME_DML_EP
-		const bool directMLSelected = tf->useGPU == USEGPU_DML;
 		if (directMLSelected) {
 			obs_log(LOG_INFO, "Initializing ONNX Runtime DirectML EP on the high-performance GPU");
+			sessionOptions.AddConfigEntry("session.disable_cpu_ep_fallback", "1");
 
 			const void *providerApi = nullptr;
 			Ort::ThrowOnError(Ort::GetApi().GetExecutionProviderApi("DML", ORT_API_VERSION, &providerApi));
@@ -163,12 +171,18 @@ int createOrtSession(filter_data *tf)
 		tf->session.reset(new Ort::Session(*tf->env, tf->modelFilepath.c_str(), sessionOptions));
 #ifdef HAVE_ONNXRUNTIME_DML_EP
 		if (directMLSelected) {
-			obs_log(LOG_INFO, "ONNX Runtime DirectML EP session initialized successfully");
+			obs_log(LOG_INFO,
+				"DirectML initialization result: success; CPU EP fallback used: no (disabled for this session)");
 		}
 #endif
+		if (tf->useGPU == USEGPU_CPU) {
+			obs_log(LOG_INFO,
+				"CPU inference session initialized successfully; CPU fallback used: no (CPU was explicitly selected)");
+		}
 	} catch (const std::exception &e) {
-		if (tf->useGPU == USEGPU_DML) {
-			obs_log(LOG_ERROR, "Failed to initialize ONNX Runtime DirectML EP session: %s", e.what());
+		if (directMLSelected) {
+			obs_log(LOG_ERROR, "DirectML initialization result: failure: %s", e.what());
+			obs_log(LOG_ERROR, "CPU EP fallback used: no; DirectML session creation aborted");
 		} else {
 			obs_log(LOG_ERROR, "%s", e.what());
 		}

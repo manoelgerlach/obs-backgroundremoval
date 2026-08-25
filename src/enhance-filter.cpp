@@ -174,7 +174,14 @@ void enhance_filter_update(void *data, obs_data_t *settings)
 			tf->model.reset(new ModelBCHW);
 		}
 		tf->useGPU = newUseGpu;
-		createOrtSession(tf.get());
+		const int ortSessionResult = createOrtSession(tf.get());
+		if (ortSessionResult != OBS_BGREMOVAL_ORT_SESSION_SUCCESS) {
+			obs_log(LOG_ERROR, "Failed to create enhancement ONNX Runtime session. Error code: %d",
+				ortSessionResult);
+			tf->isDisabled = true;
+			return;
+		}
+		tf->isDisabled = false;
 	}
 
 	if (tf->blendEffect == nullptr) {
