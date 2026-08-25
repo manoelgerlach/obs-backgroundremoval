@@ -254,6 +254,7 @@ jobs:
             "-Donnxruntime_BUILD_SHARED_LIB=OFF" `
             "-Donnxruntime_BUILD_UNIT_TESTS=OFF" `
             "-Donnxruntime_DISABLE_RTTI=OFF" `
+            "-Donnxruntime_ENABLE_DELAY_LOADING_WIN_DLLS=OFF" `
             "-Donnxruntime_REDUCED_OPS_BUILD=OFF" `
             "-Donnxruntime_RUN_ONNX_TESTS=OFF" `
             "-Donnxruntime_USE_DML=ON" `
