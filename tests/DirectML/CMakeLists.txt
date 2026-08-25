@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2026 obs-backgroundremoval contributors
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -19,8 +20,5 @@ add_test(
 )
 set_tests_properties(
   DirectMLMediaPipeSmokeTest
-  PROPERTIES
-    LABELS "directml;gpu"
-    SKIP_RETURN_CODE 77
-    TIMEOUT 120
+  PROPERTIES LABELS "directml;gpu" SKIP_RETURN_CODE 77 TIMEOUT 120
 )

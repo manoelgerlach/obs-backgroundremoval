@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -23,7 +24,10 @@ void expect(bool condition, const char *message)
 
 int main()
 {
+	expect(!UpdateConfig::hasConfiguredUpdateFeed(),
+	       "this fork build should not configure an automatic update feed");
 	UpdateConfig::latestVersionClient();
+	UpdateConfig::fetchLatestVersionAsync();
 	expect(!UpdateConfig::getLatestVersion(), "polling the dummy backend should not return a version");
 	UpdateConfig::fetchLatestVersionAsync("https://example.com/latest-version.txt", "DummyTest/1.0");
 	expect(!UpdateConfig::getLatestVersion(), "fetching with the dummy backend should not return a version");

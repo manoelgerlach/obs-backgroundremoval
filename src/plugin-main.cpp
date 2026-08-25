@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2021-2026 Roy Shilkrot <roy.shil@gmail.com>
 // SPDX-FileCopyrightText: 2023-2026 Kaito Udagawa <umireon@kaito.tokyo>
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -32,6 +33,10 @@ void showStartupDialogHandler(enum obs_frontend_event event, void *);
 
 void fetchLatestVersionIfEnabled()
 {
+	if (!UpdateConfig::hasConfiguredUpdateFeed()) {
+		return;
+	}
+
 	UpdateConfig::Request request = UpdateConfig::GetCheckForUpdatesEnabledRequest{};
 	if (UpdateConfig::doRequest(request)) {
 		UpdateConfig::fetchLatestVersionAsync();

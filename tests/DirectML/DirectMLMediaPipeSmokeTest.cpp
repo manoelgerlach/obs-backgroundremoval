@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2026 obs-backgroundremoval contributors
+// SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 

@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -8,21 +9,20 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-set(PACKAGE_VERSION_SUFFIX "" CACHE STRING "Version suffix for plugin package")
 set(DIRECTML_DLL "" CACHE FILEPATH "Path to the DirectML redistributable DLL")
 set(DIRECTML_INCLUDE_DIR "" CACHE PATH "Path containing DirectML.h")
-option(
-  REQUIRE_ONNXRUNTIME_DML_EP
-  "Fail configuration when the ONNX Runtime DirectML EP is unavailable"
-  OFF
-)
+option(REQUIRE_ONNXRUNTIME_DML_EP "Fail configuration when the ONNX Runtime DirectML EP is unavailable" OFF)
 
-block(PROPAGATE PLUGIN_VERSION)
+block(PROPAGATE PLUGIN_VERSION PLUGIN_PROJECT_VERSION)
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" VERSION_CONTENT)
   string(STRIP "${VERSION_CONTENT}" PLUGIN_VERSION)
+  string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" PLUGIN_PROJECT_VERSION "${PLUGIN_VERSION}")
+  if(NOT PLUGIN_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$")
+    message(FATAL_ERROR "VERSION must contain a SemVer-compatible version string.")
+  endif()
 endblock()
 
-project(obs-backgroundremoval VERSION "${PLUGIN_VERSION}" LANGUAGES C CXX)
+project(obs-backgroundremoval VERSION "${PLUGIN_PROJECT_VERSION}" LANGUAGES C CXX)
 
 include(CheckCXXSymbolExists)
 include(CheckCXXSourceCompiles)
@@ -33,7 +33,7 @@ include(GNUInstallDirs)
 include(./cmake/collect_licenses.cmake OPTIONAL)
 
 block(
-  PROPAGATE PLUGIN_DISPLAY_NAME PLUGIN_AUTHOR PLUGIN_EMAIL PLUGIN_BUNDLE_ID PLUGIN_LATEST_VERSION_URL
+  PROPAGATE PLUGIN_DISPLAY_NAME PLUGIN_AUTHOR PLUGIN_EMAIL PLUGIN_BUNDLE_ID PLUGIN_UPDATE_FEED_URL
 )
   file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/buildspec.props" BUILDSPEC_LINES)
   foreach(LINE IN LISTS BUILDSPEC_LINES)
@@ -80,7 +80,7 @@ target_compile_definitions(
   INTERFACE
     PLUGIN_NAME_STR="${CMAKE_PROJECT_NAME}"
     PLUGIN_VERSION_STR="${PLUGIN_VERSION}"
-    PLUGIN_LATEST_VERSION_URL="${PLUGIN_LATEST_VERSION_URL}"
+    PLUGIN_UPDATE_FEED_URL="${PLUGIN_UPDATE_FEED_URL}"
     OBS_LOG_HEADER="[${CMAKE_PROJECT_NAME}] "
 )
 
@@ -505,7 +505,7 @@ endif()
 
 ### CPack configurations
 set(CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
-set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}${PACKAGE_VERSION_SUFFIX}")
+set(CPACK_PACKAGE_VERSION "${PLUGIN_VERSION}")
 set(CPACK_PACKAGE_CONTACT "${PLUGIN_AUTHOR} <${PLUGIN_EMAIL}>")
 
 set(CPACK_ARCHIVE_THREADS 0)

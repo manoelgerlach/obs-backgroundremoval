@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
