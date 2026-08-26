@@ -18,7 +18,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 > - **Original authors:** [Roy Shilkrot (royshil)](https://github.com/royshil) and
 >   [Kaito Udagawa (umireon)](https://github.com/umireon)
 > - **Fork maintainer:** [Manoel Gerlach (manoelgerlach)](https://github.com/manoelgerlach)
-> - **Current fork version:** `1.4.1-directml.1`
+> - **Current source version:** `1.4.1-directml.2` (upcoming; not yet published)
 > - **Primary fork feature:** Windows x64 ONNX Runtime DirectML GPU inference
 
 This fork preserves the original project's portrait background removal, virtual green-screen, and low-light
@@ -59,6 +59,12 @@ A plugin for [OBS Studio](https://obsproject.com/) that allows you to replace th
    when Windows GPU inference is desired.
 
 `DirectML.dll` is included beside the plugin DLL in `bin\64bit`; no separate DirectML runtime download is required.
+
+### Fork Releases
+
+Published Windows x64 builds of this fork are available from the
+[fork releases page](https://github.com/manoelgerlach/obs-backgroundremoval/releases). Version
+`1.4.1-directml.2` is the upcoming source version and is not published until it is merged and tagged.
 
 ### Original / Upstream Releases
 
