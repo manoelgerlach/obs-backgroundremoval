@@ -13,7 +13,6 @@ __pycache__/
 /.deps/
 /.vcpkg_archives/
 /build/
-/docs/build/
 /release/
 
 /.ccache*/

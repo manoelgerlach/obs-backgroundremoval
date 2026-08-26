@@ -1,7 +1,7 @@
 {
   "display_name": "OBS Background Removal — Windows DirectML Fork",
   "id": "us.manoel.obs-backgroundremoval.directml",
-  "version": "1.4.1-directml.1",
+  "version": "1.4.1-directml.2",
   "name": "obs-backgroundremoval",
   "description": "Unofficial Windows DirectML fork of the OBS Background Removal plugin",
   "long_description": "An unofficial modified fork of royshil/obs-backgroundremoval maintained by Manoel Gerlach, with restored Windows ONNX Runtime DirectML GPU inference.",

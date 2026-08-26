@@ -18,7 +18,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 > - **Original authors:** [Roy Shilkrot (royshil)](https://github.com/royshil) and
 >   [Kaito Udagawa (umireon)](https://github.com/umireon)
 > - **Fork maintainer:** [Manoel Gerlach (manoelgerlach)](https://github.com/manoelgerlach)
-> - **Current fork version:** `1.4.1-directml.1`
+> - **Current source version:** `1.4.1-directml.2` (upcoming; not yet published)
 > - **Primary fork feature:** Windows x64 ONNX Runtime DirectML GPU inference
 
 This fork preserves the original project's portrait background removal, virtual green-screen, and low-light
@@ -27,7 +27,7 @@ enhancement features while restoring Windows GPU inference through the ONNX Runt
 <div align="center">
 
 [![License](https://img.shields.io/github/license/manoelgerlach/obs-backgroundremoval)](LICENSE)
-[![Windows PR Check](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml/badge.svg?branch=feature/windows-directml)](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml)
+[![Windows PR Check](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml/badge.svg?branch=main)](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml)
 
 </div>
 
@@ -59,6 +59,12 @@ A plugin for [OBS Studio](https://obsproject.com/) that allows you to replace th
    when Windows GPU inference is desired.
 
 `DirectML.dll` is included beside the plugin DLL in `bin\64bit`; no separate DirectML runtime download is required.
+
+### Fork Releases
+
+Published Windows x64 builds of this fork are available from the
+[fork releases page](https://github.com/manoelgerlach/obs-backgroundremoval/releases). Version
+`1.4.1-directml.2` is the upcoming source version and is not published until it is merged and tagged.
 
 ### Original / Upstream Releases
 
@@ -93,7 +99,6 @@ Additional tutorial videos:
 ```pwsh
 git clone --recurse-submodules https://github.com/manoelgerlach/obs-backgroundremoval.git
 cd obs-backgroundremoval
-git switch feature/windows-directml
 ```
 
 The canonical validated Windows build path is the repository's
@@ -105,18 +110,9 @@ The local Windows helper scripts are not the canonical build path for this fork.
 
 ### Original cross-platform build information
 
-The original project supports building Debian Forky packages with:
-
-```sh
-git clone https://github.com/royshil/obs-backgroundremoval.git
-cd obs-backgroundremoval
-sudo ./bin/bootstrap
-./bin/setup
-./bin/build
-sudo dpkg -i release/obs-backgroundremoval-*-linux-gnu.deb
-```
-
-That section describes upstream/cross-platform development, not the validated Windows DirectML fork build.
+For upstream cross-platform build instructions, consult the
+[original project repository](https://github.com/royshil/obs-backgroundremoval). Those instructions describe the
+upstream project, not the validated Windows DirectML fork build.
 
 ## Introduction
 

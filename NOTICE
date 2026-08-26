@@ -1,6 +1,23 @@
 obs-backgroundremoval
+
+Original project:
+https://github.com/royshil/obs-backgroundremoval
+
 Copyright (C) 2021-2026 Roy Shilkrot
 Copyright (C) 2023-2026 Kaito Udagawa
+
+Windows DirectML fork modifications:
+Copyright (C) 2026 Manoel Gerlach
+
+Fork repository:
+https://github.com/manoelgerlach/obs-backgroundremoval
+
+This distribution is an unofficial modified fork and is not an official
+release of the original project.
+
+This product redistributes DirectML.dll from Microsoft.AI.DirectML 1.15.4.
+The applicable Microsoft DirectML license and third-party notices are included
+in the distributed package under data/licenses/DirectML.
 
 This product includes software developed by the ONNX Runtime project
 (https://onnxruntime.ai/), Copyright (C) Microsoft Corporation, licensed under

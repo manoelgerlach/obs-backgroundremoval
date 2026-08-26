@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -48,8 +49,6 @@ jobs:
       attestations: write
       contents: read
       id-token: write
-    with:
-      release-build: true
 
   draft-release:
     needs: build
@@ -80,18 +79,6 @@ jobs:
 
           $assetsWithTitles = @{
             $artifacts.WINDOWS_X64_DLL_ARTIFACT = $null
-            $artifacts.MACOS_ARM64_DSYM_ARTIFACT = $null
-            $artifacts.MACOS_ARM64_PKG_ARTIFACT = $null
-            $artifacts.MACOS_X86_64_DSYM_ARTIFACT = $null
-            $artifacts.MACOS_X86_64_PKG_ARTIFACT = $null
-            $artifacts.DEBIAN_FORKY_AMD64_DEB_ARTIFACT = $null
-            $artifacts.DEBIAN_FORKY_AMD64_DDEB_ARTIFACT = $null
-            $artifacts.DEBIAN_FORKY_ARM64_DEB_ARTIFACT = $null
-            $artifacts.DEBIAN_FORKY_ARM64_DDEB_ARTIFACT = $null
-            $artifacts.UBUNTU_RESOLUTE_AMD64_DEB_ARTIFACT = $null
-            $artifacts.UBUNTU_RESOLUTE_AMD64_DDEB_ARTIFACT = $null
-            $artifacts.UBUNTU_RESOLUTE_ARM64_DEB_ARTIFACT = $null
-            $artifacts.UBUNTU_RESOLUTE_ARM64_DDEB_ARTIFACT = $null
           }
 
           $assets = $assetsWithTitles.GetEnumerator() | ForEach-Object {

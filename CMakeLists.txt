@@ -440,12 +440,6 @@ set(
   data/models/uretinex_net_180x320.onnx.license
 )
 
-configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/packaging/pkg/Distribution.xml.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/Distribution"
-  @ONLY
-)
-
 if(APPLE)
   set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES BUNDLE TRUE BUNDLE_EXTENSION "plugin")
   set_source_files_properties(${EFFECTS_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/effects")
@@ -474,6 +468,12 @@ elseif(MSVC)
   install(FILES ${EFFECTS_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/effects")
   install(FILES ${LOCALE_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/locale")
   install(FILES ${MODELS_FILES} DESTINATION "${OBS_PLUGIN_DATA_DIR}/models" OPTIONAL)
+  install(
+    FILES
+      "${CMAKE_CURRENT_SOURCE_DIR}/third_party/DirectML/LICENSE.txt"
+      "${CMAKE_CURRENT_SOURCE_DIR}/third_party/DirectML/ThirdPartyNotices.txt"
+    DESTINATION "${OBS_PLUGIN_DATA_DIR}/licenses/DirectML"
+  )
   if(HAVE_ONNXRUNTIME_DML_EP)
     install(FILES "${DIRECTML_DLL}" DESTINATION "${OBS_PLUGIN_BIN_DIR}")
   endif()

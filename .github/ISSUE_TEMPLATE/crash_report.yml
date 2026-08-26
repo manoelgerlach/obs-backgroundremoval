@@ -1,12 +1,13 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 name: Crash Report
-description: Submit an OBS Studio crash report directly or through an explicitly authorized agent
+description: Submit a Windows OBS Studio crash report for this unofficial DirectML fork
 title: '[Crash]: '
 labels: 'crash report'
-assignees: umireon
+assignees: ''
 body:
   - type: checkboxes
     id: privacy_and_sharing
@@ -21,10 +22,9 @@ body:
     attributes:
       label: Crash Report
       description: |
+        Fork issue tracker: https://github.com/manoelgerlach/obs-backgroundremoval/issues
         Upload one or more OBS Studio crash reports.
         Windows: `%APPDATA%\obs-studio\crashes`
-        macOS: Find the `.ips` report in Console > Crash Reports and compress it as a `.zip` file.
-        Linux: Save the output of `coredumpctl info obs` or other available crash output as a `.txt` file.
     validations:
       required: true
 
