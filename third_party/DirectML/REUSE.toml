@@ -1,0 +1,6 @@
+version = 1
+
+[[annotations]]
+path = ["LICENSE.txt", "ThirdPartyNotices.txt"]
+SPDX-FileCopyrightText = ""
+SPDX-License-Identifier = "LicenseRef-Not-Copyrightable"

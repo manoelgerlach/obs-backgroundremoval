@@ -27,7 +27,7 @@ enhancement features while restoring Windows GPU inference through the ONNX Runt
 <div align="center">
 
 [![License](https://img.shields.io/github/license/manoelgerlach/obs-backgroundremoval)](LICENSE)
-[![Windows PR Check](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml/badge.svg?branch=feature/windows-directml)](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml)
+[![Windows PR Check](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml/badge.svg?branch=main)](https://github.com/manoelgerlach/obs-backgroundremoval/actions/workflows/pr-check.yml)
 
 </div>
 
@@ -93,7 +93,6 @@ Additional tutorial videos:
 ```pwsh
 git clone --recurse-submodules https://github.com/manoelgerlach/obs-backgroundremoval.git
 cd obs-backgroundremoval
-git switch feature/windows-directml
 ```
 
 The canonical validated Windows build path is the repository's
@@ -105,18 +104,9 @@ The local Windows helper scripts are not the canonical build path for this fork.
 
 ### Original cross-platform build information
 
-The original project supports building Debian Forky packages with:
-
-```sh
-git clone https://github.com/royshil/obs-backgroundremoval.git
-cd obs-backgroundremoval
-sudo ./bin/bootstrap
-./bin/setup
-./bin/build
-sudo dpkg -i release/obs-backgroundremoval-*-linux-gnu.deb
-```
-
-That section describes upstream/cross-platform development, not the validated Windows DirectML fork build.
+For upstream cross-platform build instructions, consult the
+[original project repository](https://github.com/royshil/obs-backgroundremoval). Those instructions describe the
+upstream project, not the validated Windows DirectML fork build.
 
 ## Introduction
 

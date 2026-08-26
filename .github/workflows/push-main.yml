@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,39 +11,9 @@ on:
   push:
     branches: [main]
   workflow_call:
-    inputs:
-      release-build:
-        description: Build in release mode.
-        required: false
-        type: boolean
-        default: false
     outputs:
       WINDOWS_X64_DLL_ARTIFACT:
         value: ${{ jobs.build-windows-x64.outputs.dll-artifact }}
-      MACOS_ARM64_DSYM_ARTIFACT:
-        value: ${{ jobs.build-macos-arm64.outputs.dsym-artifact }}
-      MACOS_ARM64_PKG_ARTIFACT:
-        value: ${{ jobs.build-macos-arm64.outputs.pkg-artifact }}
-      MACOS_X86_64_DSYM_ARTIFACT:
-        value: ${{ jobs.build-macos-x86_64.outputs.dsym-artifact }}
-      MACOS_X86_64_PKG_ARTIFACT:
-        value: ${{ jobs.build-macos-x86_64.outputs.pkg-artifact }}
-      DEBIAN_FORKY_AMD64_DEB_ARTIFACT:
-        value: ${{ jobs.build-debian-amd64.outputs.forky-deb-artifact }}
-      DEBIAN_FORKY_AMD64_DDEB_ARTIFACT:
-        value: ${{ jobs.build-debian-amd64.outputs.forky-ddeb-artifact }}
-      DEBIAN_FORKY_ARM64_DEB_ARTIFACT:
-        value: ${{ jobs.build-debian-arm64.outputs.forky-deb-artifact }}
-      DEBIAN_FORKY_ARM64_DDEB_ARTIFACT:
-        value: ${{ jobs.build-debian-arm64.outputs.forky-ddeb-artifact }}
-      UBUNTU_RESOLUTE_AMD64_DEB_ARTIFACT:
-        value: ${{ jobs.build-ubuntu-amd64.outputs.resolute-deb-artifact }}
-      UBUNTU_RESOLUTE_AMD64_DDEB_ARTIFACT:
-        value: ${{ jobs.build-ubuntu-amd64.outputs.resolute-ddeb-artifact }}
-      UBUNTU_RESOLUTE_ARM64_DEB_ARTIFACT:
-        value: ${{ jobs.build-ubuntu-arm64.outputs.resolute-deb-artifact }}
-      UBUNTU_RESOLUTE_ARM64_DDEB_ARTIFACT:
-        value: ${{ jobs.build-ubuntu-arm64.outputs.resolute-ddeb-artifact }}
 
 permissions: {}
 
@@ -58,80 +29,3 @@ jobs:
       upload-artifacts: true
       attest-artifacts: true
       runs-on: windows-2025-vs2026
-
-  build-macos-arm64:
-    uses: ./.github/workflows/build-macos.yml
-    secrets: inherit
-    permissions:
-      artifact-metadata: write
-      attestations: write
-      contents: read
-      id-token: write
-    with:
-      attest-artifacts: true
-      notarize: ${{ inputs.release-build || false }}
-      x86_64: false
-      TAHOE_DEVELOPER_DIR: /Applications/Xcode_26.5.app
-
-  build-macos-x86_64:
-    uses: ./.github/workflows/build-macos.yml
-    secrets: inherit
-    permissions:
-      artifact-metadata: write
-      attestations: write
-      contents: read
-      id-token: write
-    with:
-      attest-artifacts: true
-      notarize: ${{ inputs.release-build || false }}
-      x86_64: true
-      TAHOE_DEVELOPER_DIR: /Applications/Xcode_26.5.app
-
-  build-debian-amd64:
-    uses: ./.github/workflows/build-debian.yml
-    permissions:
-      artifact-metadata: write
-      attestations: write
-      contents: read
-      id-token: write
-    with:
-      attest-artifacts: true
-      arm64: false
-
-  build-debian-arm64:
-    uses: ./.github/workflows/build-debian.yml
-    permissions:
-      artifact-metadata: write
-      attestations: write
-      contents: read
-      id-token: write
-    with:
-      attest-artifacts: true
-      arm64: true
-
-  build-ubuntu-amd64:
-    uses: ./.github/workflows/build-ubuntu.yml
-    permissions:
-      artifact-metadata: write
-      attestations: write
-      contents: read
-      id-token: write
-    with:
-      attest-artifacts: true
-      arm64: false
-
-  build-ubuntu-arm64:
-    uses: ./.github/workflows/build-ubuntu.yml
-    permissions:
-      artifact-metadata: write
-      attestations: write
-      contents: read
-      id-token: write
-    with:
-      attest-artifacts: true
-      arm64: true
-
-  build-arch:
-    uses: ./.github/workflows/build-arch.yml
-    permissions:
-      contents: read

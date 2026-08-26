@@ -533,10 +533,18 @@ jobs:
           cmake --install build --config RelWithDebInfo --prefix build_prefix
 
           $PACKAGED_DIRECTML_DLL = Join-Path build_prefix 'obs-backgroundremoval' 'bin' '64bit' 'DirectML.dll'
+          $PACKAGED_DIRECTML_LICENSE = Join-Path build_prefix 'obs-backgroundremoval' 'data' 'licenses' 'DirectML' 'LICENSE.txt'
+          $PACKAGED_DIRECTML_NOTICES = Join-Path build_prefix 'obs-backgroundremoval' 'data' 'licenses' 'DirectML' 'ThirdPartyNotices.txt'
           $PACKAGED_PLUGIN_DLL = Join-Path build_prefix 'obs-backgroundremoval' 'bin' '64bit' 'obs-backgroundremoval.dll'
           $PACKAGED_MEDIAPIPE_MODEL = Join-Path build_prefix 'obs-backgroundremoval' 'data' 'models' 'mediapipe.onnx'
           if (-not (Test-Path -LiteralPath $PACKAGED_DIRECTML_DLL -PathType Leaf)) {
             throw "DirectML.dll was not included in the Windows package at $PACKAGED_DIRECTML_DLL"
+          }
+          if (-not (Test-Path -LiteralPath $PACKAGED_DIRECTML_LICENSE -PathType Leaf)) {
+            throw "The DirectML license was not included in the Windows package at $PACKAGED_DIRECTML_LICENSE"
+          }
+          if (-not (Test-Path -LiteralPath $PACKAGED_DIRECTML_NOTICES -PathType Leaf)) {
+            throw "The DirectML third-party notices were not included in the Windows package at $PACKAGED_DIRECTML_NOTICES"
           }
           if (-not (Test-Path -LiteralPath $PACKAGED_PLUGIN_DLL -PathType Leaf)) {
             throw "The plugin DLL was not included in the Windows package at $PACKAGED_PLUGIN_DLL"

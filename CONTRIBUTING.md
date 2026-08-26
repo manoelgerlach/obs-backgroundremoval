@@ -1,14 +1,26 @@
 <!--
 SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# CONTRIBUTING.md for obs-backgroundremoval
+# Contributing to the Windows DirectML fork
+
+This repository, [`manoelgerlach/obs-backgroundremoval`](https://github.com/manoelgerlach/obs-backgroundremoval), is
+an unofficial Windows DirectML fork of the original
+[`royshil/obs-backgroundremoval`](https://github.com/royshil/obs-backgroundremoval) project by Roy Shilkrot
+(`royshil`) and Kaito Udagawa (`umireon`). Fork-specific issues and pull requests must be filed against this fork,
+not against the original maintainers.
+
+The primary supported development target is Windows 11 x64 with OBS Studio, static ONNX Runtime, and DirectML GPU
+inference. Relevant Windows x64 CI must pass. Changes must not break DirectML behavior without explicit technical
+justification and review.
 
 ## Legal and Community Guidelines
 
-To keep the `obs-backgroundremoval` project safe and reliable for everyone including its users, its contributors, and its maintainers, those who are involved in development of this project must know the following terms. Whenever we receive your Pull Request, we will explicitly ask you to confirm that your PR conforms to our policy.
+To keep this fork safe and reliable for users and contributors, everyone involved in its development must follow
+these terms. Pull requests may be asked to confirm compliance with this policy.
 
 ### 1. Licensing and Patent Grant
 
@@ -19,12 +31,15 @@ To keep the `obs-backgroundremoval` project safe and reliable for everyone inclu
 
 We always welcome every contribution! To deliver the value of your work to our users in a professional manner, please adhere to the following policies:
 
-- **No Unverified Code**: Do not submit any code that you cannot fully understand and explain. Submitting any raw outputs from LLMs or Generative-AI is strictly prohibited.
-- **Responsibility**: You must take responsibility for your code. Please ensure that your contribution has clean licensing and is reliable. We are here to help you to accomplish this, of course!
+- **AI-assisted development**: AI-assisted development is permitted, but contributors remain fully responsible for
+  understanding, reviewing, testing, licensing, and explaining all submitted code. Unreviewed, unexplained, or
+  blindly submitted generated code is not acceptable.
+- **Responsibility**: You must take responsibility for your code and ensure that your contribution is reliable and
+  has clean licensing.
 
 ### 3. Developer Certificate of Origin (DCO) and Commit Signing
 
-Please sign off (-s) all your commits (DCO), and sign all your commits (-S) with your GPG or SSH key:
+Apply DCO sign-off (`-s`) to every commit and cryptographically sign every commit (`-S`) with a GPG or SSH key:
 
 ```
 git commit -s -S

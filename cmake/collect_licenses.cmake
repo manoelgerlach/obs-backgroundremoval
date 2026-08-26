@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -11,6 +12,14 @@ function(collect_licenses output_header)
 
   if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/onnxruntime/ThirdPartyNotices.txt")
     list(APPEND license_files "${CMAKE_SOURCE_DIR}/vendor/onnxruntime/ThirdPartyNotices.txt")
+  endif()
+
+  if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/DirectML/LICENSE.txt")
+    list(APPEND license_files "${CMAKE_SOURCE_DIR}/third_party/DirectML/LICENSE.txt")
+  endif()
+
+  if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/DirectML/ThirdPartyNotices.txt")
+    list(APPEND license_files "${CMAKE_SOURCE_DIR}/third_party/DirectML/ThirdPartyNotices.txt")
   endif()
 
   foreach(prefix IN LISTS CMAKE_PREFIX_PATH)
@@ -35,6 +44,10 @@ function(collect_licenses output_header)
       set(license_name "onnxruntime")
     elseif(license_file STREQUAL "${CMAKE_SOURCE_DIR}/vendor/onnxruntime/ThirdPartyNotices.txt")
       set(license_name "onnxruntime third-party notices")
+    elseif(license_file STREQUAL "${CMAKE_SOURCE_DIR}/third_party/DirectML/LICENSE.txt")
+      set(license_name "Microsoft DirectML 1.15.4")
+    elseif(license_file STREQUAL "${CMAKE_SOURCE_DIR}/third_party/DirectML/ThirdPartyNotices.txt")
+      set(license_name "Microsoft DirectML 1.15.4 third-party notices")
     endif()
 
     file(READ "${license_file}" license_text)

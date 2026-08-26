@@ -1,5 +1,6 @@
 ---
 # SPDX-FileCopyrightText: 2026 Kaito Udagawa <umireon@kaito.tokyo>
+# SPDX-FileCopyrightText: 2026 Manoel Gerlach <mail@manoel.us>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -7,23 +8,26 @@ name: Bug report
 about: Report a reproducible bug
 title: 'what happened? write here briefly'
 labels: bug
-assignees: umireon
+assignees: ''
 ---
 
 <!--
 Thank you for reporting a bug.
 
-Feature requests and general questions belong in GitHub Discussions:
+Fork-specific bugs belong in this fork's issue tracker:
+https://github.com/manoelgerlach/obs-backgroundremoval/issues
+
+General questions about the original project may use upstream GitHub Discussions:
 https://github.com/royshil/obs-backgroundremoval/discussions
 
 Please search existing issues before submitting a new report.
 -->
 
-## OS (Windows, macOS, Ubuntu, Debian, Arch, etc)
+## Windows version
 
 <!-- Write your OS here. -->
 
-## Hardware (x64, arm64, 5070 Ti, 32GB RAM, M1 Pro, etc)
+## Hardware (x64, GPU model, driver version, memory, etc)
 
 <!-- Write information of your hardware here. -->
 
@@ -60,12 +64,6 @@ Attach log files or crash reports, or paste their contents here.
 
 OBS logs:
 - Windows: `%APPDATA%\obs-studio\logs`
-- macOS: `~/Library/Application Support/obs-studio/logs`
-- Linux: `~/.config/obs-studio/logs`
-- Linux (Flatpak): `~/.var/app/com.obsproject.Studio/config/obs-studio/logs`
-
 Crash reports:
 - Windows: `%APPDATA%\obs-studio\crashes`
-- macOS: Find the `.ips` report in Console > Crash Reports and compress it as a `.zip` file.
-- Linux: Save the output of `coredumpctl info obs` or other available crash output as a `.txt` file.
 -->
